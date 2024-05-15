@@ -1,0 +1,17 @@
+--find-links https://download.pytorch.org/whl/cu121/torch_stable.html
+torch==2.3.0+cu121
+torchdata==0.7.1
+torcheval==0.0.7
+torchinfo==1.8.0
+torchsummary==1.5.1
+torchtext==0.18.0
+datasets==2.19.1
+nltk==3.8.1
+alive-progress==3.1.5
+pydantic==2.7.0
+pydantic_core==2.18.1
+portalocker>=2.0.0
+spacy==3.7.4
+de-dep-news-trf @ https://github.com/explosion/spacy-models/releases/download/de_dep_news_trf-3.7.2/de_dep_news_trf-3.7.2-py3-none-any.whl#sha256=3fb898b58c3647aa157e8b3ceb7acb43499f27e6d2f8a23f4c130f9c3de32cd4
+en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.3/en_core_web_trf-3.7.3-py3-none-any.whl#sha256=f72abb34bdf174876bd4267b29b2501677e605e0a251fdc56c163003182ed68b
+colorama==0.4.6

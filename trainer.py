@@ -2,12 +2,11 @@ import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import CyclicLR
 from nltk.translate.meteor_score import meteor_score
-from tqdm import tqdm
+from alive_progress import alive_bar
 from transformer import Seq2SeqTransformer
 from colorama import Fore, init
 init(autoreset = True)
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class EarlyStopper:
     def __init__(self, patience: int=1, min_delta: int=0):
@@ -56,11 +55,9 @@ class Trainer():
                 if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
 
 
-    def train_epoch(self, epoch: int) -> float:
+    def train_epoch(self, epoch: int, bar) -> float:
         self.model.train()
         losses = 0
-        progress_bar = tqdm(range(len(list(self.dataloaders[0]))), desc=f"[trn epoch {epoch + 1}:", position=0,
-                            leave=False, bar_format='{desc:<12}{percentage:3.0f}%|{bar:15}{r_bar}')
         for batch_idx, (src, tgt) in enumerate(self.dataloaders[0]):
             tgt = tgt.type(torch.LongTensor)
             src = src.to(self.device)
@@ -92,18 +89,12 @@ class Trainer():
 
             losses += loss.item()
 
-            postfix = f'trn_loss: {round(loss.item(), 2)}'
-            progress_bar.set_postfix_str(postfix)
-            progress_bar.update(1)
-
         return losses / len(list(self.dataloaders[0]))
 
 
-    def test_epoch(self, epoch: int) -> float:
+    def test_epoch(self, epoch: int, bar) -> float:
         self.model.eval()
         losses = 0
-        progress_bar = tqdm(range(len(list(self.dataloaders[1]))), desc=f"[tst epoch {epoch + 1}:", position=1,
-                            leave=False, bar_format='{desc:<12}{percentage:3.0f}%|{bar:15}{r_bar}', colour='blue')
         for src, tgt in self.dataloaders[1]:
             tgt = tgt.type(torch.LongTensor)
             src = src.to(self.device)
@@ -117,10 +108,6 @@ class Trainer():
 
             loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
             losses += loss.item()
-
-            postfix = f'    {Fore.CYAN}tst_loss: {round(loss.item(), 2)}'
-            progress_bar.set_postfix_str(postfix)
-            progress_bar.update(1)
 
         return losses / len(list(self.dataloaders[1]))
 
@@ -158,10 +145,17 @@ class Trainer():
         return avg_meteor / len(list(self.dataloaders[-1]))
 
     def train(self):
-        for epoch in range(self.trainer_config.num_epochs):
-            self.train_epoch(epoch)
+        with alive_bar(self.trainer_config.num_epochs, 
+                       bar='circles', 
+                       title="Training:", 
+                       title_length=9) as bar:
+            for epoch in range(self.trainer_config.num_epochs):
+                train_loss = self.train_epoch(epoch, bar)
+                print(f'epoch {epoch+1} avg_training_loss: {train_loss}')
 
-            val_loss = self.test_epoch(epoch)
+                test_loss = self.test_epoch(epoch, bar)
+                print(f'{Fore.CYAN}epoch {epoch+1} avg_test_loss:     {test_loss}')
 
-            if self.early_stopper.early_stop(val_loss):
-                break
+                if self.early_stopper.early_stop(test_loss):
+                    break
+                bar()

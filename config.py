@@ -14,8 +14,8 @@ class SharedStore(BaseModel):
 class TokenizerConfig(BaseModel):
     src_language: str = 'de'
     tgt_language: str = 'en'
-    src_tokenizer: Any = get_tokenizer('spacy', language='de_core_news_sm')
-    tgt_tokenizer: Any = get_tokenizer('spacy', language='en_core_web_sm')
+    src_tokenizer: Any = get_tokenizer('spacy', language='de_dep_news_trf')
+    tgt_tokenizer: Any = get_tokenizer('spacy', language='en_core_web_trf')
 
 
 class DataLoaderConfig(BaseModel):
