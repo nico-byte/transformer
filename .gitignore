@@ -1,0 +1,4 @@
+__pycache__
+.data
+.nltk
+.ruff_cache
