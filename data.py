@@ -4,6 +4,9 @@ import random
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import torchtext
+torchtext.disable_torchtext_deprecation_warning()
+
 from torchtext.datasets import Multi30k
 from torchtext.vocab import build_vocab_from_iterator
 from datasets import load_dataset
@@ -58,6 +61,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
                                                             specials=self.shared_store.special_symbols,
                                                             special_first=True)
             vocab_transform[ln].set_default_index(self.shared_store.special_symbols.index('<unk>'))
+        print(vocab_transform)
         return vocab_transform
 
     def yield_tokens(self, data_iter: list, language: str):
@@ -71,6 +75,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
             text_transform[ln] = self.sequential_transforms(self.shared_store.token_transform[ln],
                                                             self.shared_store.vocab_transform[ln],
                                                             self.tensor_transform)
+        print(text_transform)
         return text_transform
 
     def sequential_transforms(self, *transforms):

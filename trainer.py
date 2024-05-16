@@ -1,3 +1,5 @@
+import os
+import sys
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import CyclicLR
@@ -44,6 +46,7 @@ class Trainer():
                      step_size_up=STEPSIZE/2, step_size_down=STEPSIZE/2, cycle_momentum=False)
         
         self.early_stopper = early_stopper
+        self.run_id = 1234
         
         self.dataloaders = shared_store.dataloaders
         
@@ -55,7 +58,7 @@ class Trainer():
                 if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
 
 
-    def train_epoch(self, epoch: int, bar) -> float:
+    def train_epoch(self) -> float:
         self.model.train()
         losses = 0
         for batch_idx, (src, tgt) in enumerate(self.dataloaders[0]):
@@ -92,7 +95,7 @@ class Trainer():
         return losses / len(list(self.dataloaders[0]))
 
 
-    def test_epoch(self, epoch: int, bar) -> float:
+    def test_epoch(self) -> float:
         self.model.eval()
         losses = 0
         for src, tgt in self.dataloaders[1]:
@@ -145,17 +148,35 @@ class Trainer():
         return avg_meteor / len(list(self.dataloaders[-1]))
 
     def train(self):
-        with alive_bar(self.trainer_config.num_epochs, 
-                       bar='circles', 
-                       title="Training:", 
-                       title_length=9) as bar:
-            for epoch in range(self.trainer_config.num_epochs):
-                train_loss = self.train_epoch(epoch, bar)
-                print(f'epoch {epoch+1} avg_training_loss: {train_loss}')
+        try:
+            with alive_bar(self.trainer_config.num_epochs, 
+                           bar='circles', 
+                           title="Training:", 
+                           title_length=9) as bar:
+                for epoch in range(self.trainer_config.num_epochs):
+                    train_loss = self.train_epoch()
+                    print(f'epoch {epoch+1} avg_training_loss: {train_loss}')
 
-                test_loss = self.test_epoch(epoch, bar)
-                print(f'{Fore.CYAN}epoch {epoch+1} avg_test_loss:     {test_loss}')
+                    test_loss = self.test_epoch()
+                    print(f'{Fore.CYAN}epoch {epoch+1} avg_test_loss:     {test_loss}')
 
-                if self.early_stopper.early_stop(test_loss):
-                    break
-                bar()
+                    if self.early_stopper.early_stop(test_loss):
+                        break
+                    bar()
+        except KeyboardInterrupt:
+            print(f'\n{Fore.RED}Training interrupted by user')
+                
+            if not os.path.exists(f'./results/{self.run_id}'):
+                os.makedirs(f'./results/{self.run_id}')
+                
+            filepath = f'./results/{self.run_id}/epoch-{epoch}.pt'
+                
+            if epoch > 0:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': self.model.state_dict(),
+                    'optimizer_state_dict': self.optim.state_dict(),
+                    'loss': train_loss,
+                    }, filepath)
+                print(f'Saved model checkpoint under: {filepath}')
+            sys.exit(0)

@@ -1,14 +1,20 @@
 from typing import List, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticBaseModel
+import torch
 from torchtext.data.utils import get_tokenizer
 
 
+class BaseModel(PydanticBaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+
+
 class SharedStore(BaseModel):
-    special_symbols: List[str] = ['<unk>', '<bos>', '<eos>', '<pad>']
-    text_transform: Any = None
     token_transform: Dict[str, Any]
-    vocab_transform: Any = None
+    text_transform: Dict[str, Any] = {}
+    vocab_transform: Dict[str, Any] = {}
     dataloaders: List[Any] = []
+    special_symbols: List[str] = ['<unk>', '<bos>', '<eos>', '<pad>']
 
 
 class TokenizerConfig(BaseModel):
@@ -18,7 +24,7 @@ class TokenizerConfig(BaseModel):
     tgt_tokenizer: Any = get_tokenizer('spacy', language='en_core_web_trf')
 
 
-class DataLoaderConfig(BaseModel):
+class DataLoaderConfig(PydanticBaseModel):
     dataset: str
     batch_size: int
     num_workers: int
@@ -36,7 +42,7 @@ class TransformerConfig(BaseModel):
     tgt_vocab_size: int
     dim_feedforward: int = 512
     dropout: float = 0.1
-    shared_store: Any
+    shared_store: SharedStore
 
 
 class TrainerConfig(BaseModel):
@@ -46,4 +52,4 @@ class TrainerConfig(BaseModel):
     tgt_batch_size: int = None
     num_cycles: int = None
     stepsize: int = None
-    device: Any = None
+    device: torch.device = None
