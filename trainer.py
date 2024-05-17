@@ -29,24 +29,43 @@ class EarlyStopper:
 
 
 class Trainer():
-    def __init__(self, 
+    def __init__(self,
                  model: Seq2SeqTransformer,
                  early_stopper: EarlyStopper,
                  trainer_config,
-                 shared_store):
+                 shared_store, 
+                 run_id: str,
+                 resume: bool=False):
+        if os.path.exists(f'./results/{run_id}') and not resume:
+            print(f'{Fore.RED}Run ID already exists!')
+            sys.exit(1)
+        elif not resume:
+            os.makedirs(f'./results/{run_id}')
+        
         self.trainer_config = trainer_config
         self.shared_store = shared_store
-        self.model = model
-        self.optim = torch.optim.AdamW(self.model.parameters())
-        self.criterion = nn.CrossEntropyLoss(ignore_index=shared_store.special_symbols.index('<pad>'))
+        self.run_id = run_id
+        
         STEPSIZE = (len(list(shared_store.dataloaders[0])) /
             (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // trainer_config.num_cycles
         
+        self.model = model
+        self.criterion = nn.CrossEntropyLoss(ignore_index=shared_store.special_symbols.index('<pad>'))
+        self.optim = torch.optim.AdamW(self.model.parameters())
         self.scheduler = CyclicLR(self.optim, base_lr=2e-6, max_lr=trainer_config.learning_rate, mode='triangular2', 
                      step_size_up=STEPSIZE/2, step_size_down=STEPSIZE/2, cycle_momentum=False)
         
         self.early_stopper = early_stopper
-        self.run_id = 1234
+        
+        # resuming won't work because spacy tokenizer yields incosistent vocabs, so the dimensions are not alwys the same
+        if resume:
+            checkpoint = self._load_model_for_training()
+            self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+            self.optim.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.scheduler.load_state_dict(checkpoint['optimizer_scheduler_dict'])
+            self.epoch = checkpoint['epoch']
+        else:
+            self.epoch = 1
         
         self.dataloaders = shared_store.dataloaders
         
@@ -58,7 +77,7 @@ class Trainer():
                 if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
 
 
-    def train_epoch(self) -> float:
+    def _train_epoch(self) -> float:
         self.model.train()
         losses = 0
         for batch_idx, (src, tgt) in enumerate(self.dataloaders[0]):
@@ -95,7 +114,7 @@ class Trainer():
         return losses / len(list(self.dataloaders[0]))
 
 
-    def test_epoch(self) -> float:
+    def _test_epoch(self) -> float:
         self.model.eval()
         losses = 0
         for src, tgt in self.dataloaders[1]:
@@ -153,30 +172,50 @@ class Trainer():
                            bar='circles', 
                            title="Training:", 
                            title_length=9) as bar:
-                for epoch in range(self.trainer_config.num_epochs):
-                    train_loss = self.train_epoch()
-                    print(f'epoch {epoch+1} avg_training_loss: {train_loss}')
+                for self.epoch in range(1, self.trainer_config.num_epochs):
+                    train_loss = self._train_epoch()
+                    print(f'epoch {self.epoch} avg_training_loss: {train_loss}')
 
-                    test_loss = self.test_epoch()
-                    print(f'{Fore.CYAN}epoch {epoch+1} avg_test_loss:     {test_loss}')
+                    test_loss = self._test_epoch()
+                    print(f'{Fore.CYAN}epoch {self.epoch} avg_test_loss:     {test_loss}')
 
                     if self.early_stopper.early_stop(test_loss):
+                        self._save_model()
                         break
                     bar()
         except KeyboardInterrupt:
             print(f'\n{Fore.RED}Training interrupted by user')
                 
-            if not os.path.exists(f'./results/{self.run_id}'):
-                os.makedirs(f'./results/{self.run_id}')
-                
-            filepath = f'./results/{self.run_id}/epoch-{epoch}.pt'
+            self._save_model(interrupted=True, epoch=self.epoch)
+            sys.exit(0)
+            
+        self._save_model()
+            
+    def _save_model(self, interrupted: bool=False, epoch: int = 0):
+        if interrupted:
+            filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
                 
             if epoch > 0:
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': self.model.state_dict(),
                     'optimizer_state_dict': self.optim.state_dict(),
-                    'loss': train_loss,
+                    'scheduler_state_dict': self.scheduler.state_dict()
                     }, filepath)
                 print(f'Saved model checkpoint under: {filepath}')
-            sys.exit(0)
+            else:
+                print(f'{Fore.RED}Could not save model because it did not train for a minimum of one epoch!')
+        else:
+            filepath = f'./results/{self.run_id}/final_model.pt'
+        
+            model_scripted = torch.jit.script(self.model)
+            model_scripted.save(filepath)
+        
+    def _load_model_for_inference(self):
+        filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
+        self.model = torch.jit.script(filepath)
+        
+    def _load_model_for_training(self):
+        filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
+        checkpoint = torch.load(filepath)
+        return checkpoint

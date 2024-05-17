@@ -27,7 +27,7 @@ shared_store = SharedStore(
 
 dl_conf = DataLoaderConfig(
       dataset="multi30k",
-      batch_size=16,
+      batch_size=128,
       num_workers=4,
       pin_memory=True,
       drop_last=False,
@@ -45,13 +45,13 @@ SRC_VOCAB_SIZE = len(shared_store.vocab_transform[tkn_conf.src_language])
 TGT_VOCAB_SIZE = len(shared_store.vocab_transform[tkn_conf.tgt_language])
 
 model_conf = TransformerConfig(
-      num_encoder_layers=6,
-      num_decoder_layers=6,
+      num_encoder_layers=4,
+      num_decoder_layers=4,
       emb_size=512,
-      nhead=16,
+      nhead=8,
       src_vocab_size=SRC_VOCAB_SIZE,
       tgt_vocab_size=TGT_VOCAB_SIZE,
-      dim_feedforward=2048,
+      dim_feedforward=512,
       dropout=0.1,
       shared_store=shared_store
 )
@@ -61,10 +61,10 @@ transformer = Seq2SeqTransformer(model_conf, shared_store).to(DEVICE)
 
 trainer_conf = TrainerConfig(
       learning_rate=0.0001,
-      num_epochs=200,
+      num_epochs=18,
       batch_size=shared_store.dataloaders[0].batch_size,
-      tgt_batch_size=1024,
-      num_cycles=6,
+      tgt_batch_size=128,
+      num_cycles=3,
       device=DEVICE
 )
 print(trainer_conf.model_dump())
@@ -73,7 +73,7 @@ summary(transformer, [(500, dl_conf.batch_size), (500, dl_conf.batch_size)], dep
 
 early_stopper = EarlyStopper(patience=3, min_delta=0.03)
 
-trainer = Trainer(transformer, early_stopper, trainer_conf, shared_store)
+trainer = Trainer(transformer, early_stopper, trainer_conf, shared_store, run_id=1234)
 
 trainer.train()
 print(f'\nEvaluation: meteor_score  - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
