@@ -9,7 +9,7 @@ from trainer import Trainer, EarlyStopper
 from config import SharedStore, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
 warnings.filterwarnings("ignore", category=UserWarning)
 
-nltk.download('wordnet', download_dir='./.nltk')
+nltk.download('wordnet', download_dir='./.venv/share/nltk_data')
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -27,7 +27,7 @@ shared_store = SharedStore(
 
 dl_conf = DataLoaderConfig(
       dataset="multi30k",
-      batch_size=32,
+      batch_size=16,
       num_workers=4,
       pin_memory=True,
       drop_last=False,
@@ -45,10 +45,10 @@ SRC_VOCAB_SIZE = len(shared_store.vocab_transform[tkn_conf.src_language])
 TGT_VOCAB_SIZE = len(shared_store.vocab_transform[tkn_conf.tgt_language])
 
 model_conf = TransformerConfig(
-      num_encoder_layers=4,
-      num_decoder_layers=4,
+      num_encoder_layers=6,
+      num_decoder_layers=6,
       emb_size=512,
-      nhead=8,
+      nhead=16,
       src_vocab_size=SRC_VOCAB_SIZE,
       tgt_vocab_size=TGT_VOCAB_SIZE,
       dim_feedforward=2048,
@@ -69,7 +69,7 @@ trainer_conf = TrainerConfig(
 )
 print(trainer_conf.model_dump())
 
-summary(transformer, [(500, dl_conf.batch_size), (500, dl_conf.batch_size)])
+summary(transformer, [(500, dl_conf.batch_size), (500, dl_conf.batch_size)], depth=5)
 
 early_stopper = EarlyStopper(patience=3, min_delta=0.03)
 

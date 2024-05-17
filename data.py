@@ -61,7 +61,6 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
                                                             specials=self.shared_store.special_symbols,
                                                             special_first=True)
             vocab_transform[ln].set_default_index(self.shared_store.special_symbols.index('<unk>'))
-        print(vocab_transform)
         return vocab_transform
 
     def yield_tokens(self, data_iter: list, language: str):
