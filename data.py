@@ -54,12 +54,18 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
     def build_vocab(self):
         vocab_transform = {}
+        gibberish_tokens = ['sadhads', 'suhd', 'ksjhd', 'skdsd', 'sjdic', 'sajn']
         for ln in [self.tkn_config.src_language, self.tkn_config.tgt_language]:
             train_iter = self.train_dataset
             vocab_transform[ln] = build_vocab_from_iterator(self.yield_tokens(train_iter, ln),
                                                             min_freq=1,
                                                             specials=self.shared_store.special_symbols,
                                                             special_first=True)
+            # pad vocab to be divisible by 8
+            rest_of_8 = 8 - (len(vocab_transform[ln]) % 8)
+            for token in gibberish_tokens[:rest_of_8]:
+                vocab_transform[ln].append_token(token)
+            
             vocab_transform[ln].set_default_index(self.shared_store.special_symbols.index('<unk>'))
         return vocab_transform
 

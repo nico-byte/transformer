@@ -50,4 +50,4 @@ class TrainerConfig(BaseModel):
     tgt_batch_size: int = None
     num_cycles: int = None
     stepsize: int = None
-    device: torch.device = None
+    device: str = None

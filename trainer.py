@@ -43,6 +43,9 @@ class Trainer():
         elif not resume:
             os.makedirs(f'./results/{run_id}')
         
+        self.use_amp = True
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+        
         self.trainer_config = trainer_config
         self.shared_store = shared_store
         self.run_id = run_id
@@ -79,28 +82,29 @@ class Trainer():
             
             tgt_input = tgt[:-1, :]
             src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
+            with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
+                tgt_out = tgt[1:, :]
+                loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
 
-            logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
-
-            self.optim.zero_grad()
-
-            tgt_out = tgt[1:, :]
-
-            loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
-            loss.backward()
-
+            self.scaler.scale(loss).backward()
+            
             if self.grad_accum and (batch_idx + 1) % self.accumulation_steps == 0:
                 for param in self.model.parameters():
                     param.grad /= self.accumulation_steps
 
-                self.optim.step()
+                self.scaler.step(self.optim)
+                self.scaler.update()
                 self.scheduler.step()
                 # Reset gradients, for the next accumulated batches
                 for param in self.model.parameters():
-                    param.grad.zero_()
+                    param.grad = None
             else:
-                self.optim.step()
+                self.scaler.step(self.optim)
+                self.scaler.update()
                 self.scheduler.step()
+                for param in self.model.parameters():
+                    param.grad = None   
 
             losses += loss.item()
 
@@ -119,11 +123,11 @@ class Trainer():
                 tgt_input = tgt[:-1, :]
                 src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
 
-                logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
-
-                tgt_out = tgt[1:, :]
-
-                loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+                with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                    logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
+                    tgt_out = tgt[1:, :]
+                    loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+                
                 losses += loss.item()
 
         return losses / len(list(self.dataloaders[1]))
@@ -142,11 +146,11 @@ class Trainer():
                 tgt_input = tgt[:-1, :]
                 src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
 
-                logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
-
-                tgt_out = tgt[1:, :]
-
-                loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+                with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                    logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
+                    tgt_out = tgt[1:, :]
+                    loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+                
                 losses += loss.item()
                 predictions = torch.argmax(logits, dim=-1)
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()

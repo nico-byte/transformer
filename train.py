@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 nltk.download('wordnet', download_dir='./.venv/share/nltk_data')
 
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def main():
@@ -52,11 +52,11 @@ def main():
       model_conf = TransformerConfig(
             num_encoder_layers=4,
             num_decoder_layers=4,
-            emb_size=512,
+            emb_size=1024,
             nhead=8,
             src_vocab_size=SRC_VOCAB_SIZE,
             tgt_vocab_size=TGT_VOCAB_SIZE,
-            dim_feedforward=512,
+            dim_feedforward=2048,
             dropout=0.1,
             shared_store=shared_store
       )
@@ -67,7 +67,7 @@ def main():
 
       trainer_conf = TrainerConfig(
             learning_rate=0.0001,
-            num_epochs=10,
+            num_epochs=18,
             batch_size=shared_store.dataloaders[0].batch_size,
             tgt_batch_size=128,
             num_cycles=3,
@@ -79,7 +79,7 @@ def main():
 
       early_stopper = EarlyStopper(patience=3, min_delta=0.03)
 
-      trainer = Trainer(transformer, translator, early_stopper, trainer_conf, shared_store, run_id=1234)
+      trainer = Trainer(transformer, translator, early_stopper, trainer_conf, shared_store, run_id='multi30k-small')
 
       trainer.train()
       print(f'\nEvaluation: meteor_score  - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
