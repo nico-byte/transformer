@@ -31,6 +31,7 @@ class EarlyStopper:
 class Trainer():
     def __init__(self,
                  model: Seq2SeqTransformer,
+                 translator, 
                  early_stopper: EarlyStopper,
                  trainer_config,
                  shared_store, 
@@ -45,6 +46,7 @@ class Trainer():
         self.trainer_config = trainer_config
         self.shared_store = shared_store
         self.run_id = run_id
+        self.translator = translator
         
         STEPSIZE = (len(list(shared_store.dataloaders[0])) /
             (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // trainer_config.num_cycles
@@ -56,17 +58,7 @@ class Trainer():
                      step_size_up=STEPSIZE/2, step_size_down=STEPSIZE/2, cycle_momentum=False)
         
         self.early_stopper = early_stopper
-        
-        # resuming won't work because spacy tokenizer yields incosistent vocabs, so the dimensions are not alwys the same
-        if resume:
-            checkpoint = self._load_model_for_training()
-            self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-            self.optim.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.scheduler.load_state_dict(checkpoint['optimizer_scheduler_dict'])
-            self.epoch = checkpoint['epoch']
-        else:
-            self.epoch = 1
-        
+                
         self.dataloaders = shared_store.dataloaders
         
         self.device = trainer_config.device
@@ -84,10 +76,11 @@ class Trainer():
             tgt = tgt.type(torch.LongTensor)
             src = src.to(self.device)
             tgt = tgt.to(self.device)
-
+            
             tgt_input = tgt[:-1, :]
+            src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
 
-            logits = self.model(src, tgt_input)
+            logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
 
             self.optim.zero_grad()
 
@@ -117,19 +110,21 @@ class Trainer():
     def _test_epoch(self) -> float:
         self.model.eval()
         losses = 0
-        for src, tgt in self.dataloaders[1]:
-            tgt = tgt.type(torch.LongTensor)
-            src = src.to(self.device)
-            tgt = tgt.to(self.device)
+        with torch.no_grad():
+            for src, tgt in self.dataloaders[1]:
+                tgt = tgt.type(torch.LongTensor)
+                src = src.to(self.device)
+                tgt = tgt.to(self.device)
 
-            tgt_input = tgt[:-1, :]
+                tgt_input = tgt[:-1, :]
+                src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
 
-            logits = self.model(src, tgt_input)
+                logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
 
-            tgt_out = tgt[1:, :]
+                tgt_out = tgt[1:, :]
 
-            loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
-            losses += loss.item()
+                loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+                losses += loss.item()
 
         return losses / len(list(self.dataloaders[1]))
 
@@ -138,46 +133,48 @@ class Trainer():
         self.model.eval()
         losses = 0
         avg_meteor = 0
-        for src, tgt in self.dataloaders[-1]:
-            tgt = tgt.type(torch.LongTensor)
-            src = src.to(self.device)
-            tgt = tgt.to(self.device)
+        with torch.no_grad():
+            for src, tgt in self.dataloaders[-1]:
+                tgt = tgt.type(torch.LongTensor)
+                src = src.to(self.device)
+                tgt = tgt.to(self.device)
 
-            tgt_input = tgt[:-1, :]
+                tgt_input = tgt[:-1, :]
+                src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
 
-            logits = self.model(src, tgt_input)
+                logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
 
-            tgt_out = tgt[1:, :]
+                tgt_out = tgt[1:, :]
 
-            loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
-            losses += loss.item()
-            predictions = torch.argmax(logits, dim=-1)
-            predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
-            targets = tgt_input.T.cpu().numpy().tolist()
+                loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+                losses += loss.item()
+                predictions = torch.argmax(logits, dim=-1)
+                predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
+                targets = tgt_input.T.cpu().numpy().tolist()
 
-            all_preds = [[token for token in self.shared_store.vocab_transform[tgt_language].lookup_tokens(pred_tokens) \
-                if token not in ["<bos>", "<eos>", "<pad>"]] for pred_tokens in predictions]
-            all_targets = [[token for token in self.shared_store.vocab_transform[tgt_language].lookup_tokens(tgt_tokens) \
-                if token not in ["<bos>", "<eos>", "<pad>"]] for tgt_tokens in targets]
+                all_preds = [[token for token in self.shared_store.vocab_transform[tgt_language].lookup_tokens(pred_tokens) \
+                    if token not in ["<bos>", "<eos>", "<pad>"]] for pred_tokens in predictions]
+                all_targets = [[token for token in self.shared_store.vocab_transform[tgt_language].lookup_tokens(tgt_tokens) \
+                    if token not in ["<bos>", "<eos>", "<pad>"]] for tgt_tokens in targets]
 
-            meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
-                if not len(preds) == 0]) / len(all_targets)
-            avg_meteor += meteor
+                meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
+                    if not len(preds) == 0]) / len(all_targets)
+                avg_meteor += meteor
 
         return avg_meteor / len(list(self.dataloaders[-1]))
 
     def train(self):
         try:
             with alive_bar(self.trainer_config.num_epochs, 
-                           bar='circles', 
+                           bar='classic', 
                            title="Training:", 
                            title_length=9) as bar:
-                for self.epoch in range(1, self.trainer_config.num_epochs):
+                for epoch in range(1, self.trainer_config.num_epochs+1):
                     train_loss = self._train_epoch()
-                    print(f'epoch {self.epoch} avg_training_loss: {train_loss}')
+                    print(f'epoch {epoch} avg_training_loss: {train_loss}')
 
                     test_loss = self._test_epoch()
-                    print(f'{Fore.CYAN}epoch {self.epoch} avg_test_loss:     {test_loss}')
+                    print(f'{Fore.CYAN}epoch {epoch} avg_test_loss:     {test_loss}')
 
                     if self.early_stopper.early_stop(test_loss):
                         self._save_model()
@@ -185,37 +182,18 @@ class Trainer():
                     bar()
         except KeyboardInterrupt:
             print(f'\n{Fore.RED}Training interrupted by user')
-                
-            self._save_model(interrupted=True, epoch=self.epoch)
             sys.exit(0)
             
         self._save_model()
             
-    def _save_model(self, interrupted: bool=False, epoch: int = 0):
-        if interrupted:
-            filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
-                
-            if epoch > 0:
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': self.model.state_dict(),
-                    'optimizer_state_dict': self.optim.state_dict(),
-                    'scheduler_state_dict': self.scheduler.state_dict()
-                    }, filepath)
-                print(f'Saved model checkpoint under: {filepath}')
-            else:
-                print(f'{Fore.RED}Could not save model because it did not train for a minimum of one epoch!')
-        else:
-            filepath = f'./results/{self.run_id}/final_model.pt'
+    def _save_model(self):
+        model_filepath = f'./results/{self.run_id}/checkpoint.pt'
+        vocab_file_path = f'./results/{self.run_id}/vocab.pth'
         
-            model_scripted = torch.jit.script(self.model)
-            model_scripted.save(filepath)
+        model_scripted = torch.jit.script(self.model)
+        model_scripted.save(model_filepath)
+        torch.save(self.shared_store.vocab_transform, vocab_file_path)
         
-    def _load_model_for_inference(self):
+    def load_model(self):
         filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
         self.model = torch.jit.script(filepath)
-        
-    def _load_model_for_training(self):
-        filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
-        checkpoint = torch.load(filepath)
-        return checkpoint

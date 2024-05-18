@@ -34,16 +34,14 @@ class DataLoaderConfig(PydanticBaseModel):
     
 
 class TransformerConfig(BaseModel):
-    num_encoder_layers: int
-    num_decoder_layers: int
-    emb_size: int
-    nhead: int
+    num_encoder_layers: int = 4
+    num_decoder_layers: int = 4
+    emb_size: int = 512
+    nhead: int = 8
     src_vocab_size: int
     tgt_vocab_size: int
     dim_feedforward: int = 512
     dropout: float = 0.1
-    shared_store: SharedStore
-
 
 class TrainerConfig(BaseModel):
     learning_rate: float

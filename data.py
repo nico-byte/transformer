@@ -68,27 +68,6 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         for data_sample in data_iter:
             yield self.shared_store.token_transform[language](data_sample[language_index[language]])
 
-    def create_text_transform(self):
-        text_transform = {}
-        for ln in [self.tkn_config.src_language, self.tkn_config.tgt_language]:
-            text_transform[ln] = self.sequential_transforms(self.shared_store.token_transform[ln],
-                                                            self.shared_store.vocab_transform[ln],
-                                                            self.tensor_transform)
-        print(text_transform)
-        return text_transform
-
-    def sequential_transforms(self, *transforms):
-        def func(txt_input):
-            for transform in transforms:
-                txt_input = transform(txt_input)
-            return txt_input
-        return func
-
-    def tensor_transform(self, token_ids: List[int]):
-        return torch.cat((torch.tensor([self.shared_store.special_symbols.index('<bos>')]),
-                          torch.tensor(token_ids),
-                          torch.tensor([self.shared_store.special_symbols.index('<eos>')])))
-
     def collate_fn(self, batch):
         src_batch, tgt_batch = [], []
         for src_sample, tgt_sample in batch:
@@ -116,7 +95,8 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.build_datasets()
 
         self.shared_store.vocab_transform = super().build_vocab()
-        self.shared_store.text_transform = super().create_text_transform()
+        self.shared_store.text_transform = create_text_transform(tkn_config.src_language, tkn_config.tgt_language, 
+                                                                 self.shared_store.token_transform, self.shared_store.vocab_transform)
 
         super().build_dataloaders()
 
@@ -139,7 +119,8 @@ class Multi30kDataLoader(BaseDataLoader):
         self.build_datasets()
         
         self.shared_store.vocab_transform = super().build_vocab()
-        self.shared_store.text_transform = super().create_text_transform()
+        self.shared_store.text_transform = create_text_transform(tkn_config.src_language, tkn_config.tgt_language, 
+                                                                 self.shared_store.token_transform, self.shared_store.vocab_transform)
 
         super().build_dataloaders()
 
@@ -159,4 +140,32 @@ class Multi30kDataLoader(BaseDataLoader):
 
         print(f'Sample from trainset: {self.train_dataset[0]}\n'
               f'Sample from valset: {self.val_dataset[0]}\n')
+        
+
+def create_text_transform(src_lang, tgt_lang, token_transform, vocab_transform):
+    text_transform = {}
+    for ln in [src_lang, tgt_lang]:
+        text_transform[ln] = sequential_transforms(token_transform[ln],
+                                                    vocab_transform[ln],
+                                                    tensor_transform)
+    print(text_transform)
+    return text_transform
+
+def sequential_transforms(*transforms):
+    def func(txt_input):
+        for transform in transforms:
+            txt_input = transform(txt_input)
+        return txt_input
+    return func
+
+def tensor_transform(token_ids: List[int]):
+    special_symbols: List[str] = ['<unk>', '<bos>', '<eos>', '<pad>']
+    return torch.cat((torch.tensor([special_symbols.index('<bos>')]),
+                      torch.tensor(token_ids),
+                      torch.tensor([special_symbols.index('<eos>')])))
+    
+def load_vocab(run_id):
+        vocab_file_path = f'./results/{run_id}/vocab.pth'
+        
+        return torch.load(vocab_file_path)
         
