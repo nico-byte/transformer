@@ -85,10 +85,11 @@ def main():
       print(f'\nEvaluation: meteor_score  - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
 
       TEST_SEQUENCE = "Ein Mann mit blonden Haar hat ein Haus aus Steinen gebaut ."
-      
-      print(f'Input: {TEST_SEQUENCE}, Output: {translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
+      output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
             tgt_language=tkn_conf.tgt_language, text_transform=shared_store.text_transform, 
-            vocab_transform=shared_store.vocab_transform, special_symbols=shared_store.special_symbols)}')
+            vocab_transform=shared_store.vocab_transform, special_symbols=shared_store.special_symbols)
+      
+      print(f'Input: {TEST_SEQUENCE}, Output: {output}')
       
 if __name__ == '__main__':
       main()

@@ -89,9 +89,11 @@ def translate_sequence(run_id, sequence):
         
     translator = Translate(checkpoint, device, special_symbols)
     
-    print(f'Input: {sequence}, Output: {translator.translate(sequence, src_language=src_lang, 
+    output = translator.translate(sequence, src_language=src_lang, 
           tgt_language=tgt_lang, text_transform=text_transform, vocab_transform=vocab_transform, 
-          special_symbols=special_symbols)}')
+          special_symbols=special_symbols)
+    
+    print(f'Input: {sequence}, Output: {output}')
     
 if __name__ == '__main__':
     sequence = "Ein Mann mit blonden Haar hat ein Haus aus Steinen gebaut ."
