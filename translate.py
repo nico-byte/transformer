@@ -97,5 +97,5 @@ def translate_sequence(run_id, sequence):
     
 if __name__ == '__main__':
     sequence = "Ein Mann mit blonden Haar hat ein Haus aus Steinen gebaut ."
-    run_id = 1234
+    run_id = "multi30k-small"
     translate_sequence(run_id, sequence)

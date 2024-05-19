@@ -1,6 +1,8 @@
 import torch
 from torchinfo import summary
 import warnings
+import yaml
+import argparse
 
 import nltk
 from data import IWSLT2017DataLoader, Multi30kDataLoader
@@ -12,10 +14,25 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 nltk.download('wordnet', download_dir='./.venv/share/nltk_data')
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+def parsing_args():
+      parser = argparse.ArgumentParser(description='Parsing some important arguments.')
+      parser.add_argument('path_to_config', type=str)
+      parser.add_argument('--run-id', type=str)
+      parser.add_argument('--torch-device', type=str, default='cpu', choices=['cpu', 'cuda', 'cuda:0', 'cuda:1'])
+      parser.add_argument('--resume', default=False, action='store_true')
 
-def main():
+      return parser.parse_args()
+
+def main(args):
+      path_to_config = args.path_to_config
+      run_id = args.run_id
+      device = args.torch_device
+      resume = args.resume
+      
+      with open(path_to_config) as stream:
+            config = yaml.safe_load(stream)
+      
       tkn_conf = TokenizerConfig()
       print(tkn_conf.model_dump())
 
@@ -26,15 +43,7 @@ def main():
                   tkn_conf.tgt_language: tkn_conf.tgt_tokenizer
             }
       )
-
-      dl_conf = DataLoaderConfig(
-            dataset="multi30k",
-            batch_size=128,
-            num_workers=4,
-            pin_memory=True,
-            drop_last=False,
-            shuffle=True,
-      )
+      dl_conf = DataLoaderConfig(**config['dataloader'])
       print(dl_conf.model_dump())
 
       if dl_conf.dataset == "iwslt2017":
@@ -50,39 +59,31 @@ def main():
             
 
       model_conf = TransformerConfig(
-            num_encoder_layers=4,
-            num_decoder_layers=4,
-            emb_size=1024,
-            nhead=8,
+            **config['transformer'],
             src_vocab_size=SRC_VOCAB_SIZE,
             tgt_vocab_size=TGT_VOCAB_SIZE,
-            dim_feedforward=2048,
-            dropout=0.1,
             shared_store=shared_store
       )
       print(model_conf.model_dump())
 
-      transformer = Seq2SeqTransformer(model_conf).to(DEVICE)
-      translator = Translate(transformer, DEVICE, shared_store.special_symbols)
+      transformer = Seq2SeqTransformer(model_conf).to(device)
+      translator = Translate(transformer, device, shared_store.special_symbols)
 
       trainer_conf = TrainerConfig(
-            learning_rate=0.0001,
-            num_epochs=18,
-            batch_size=shared_store.dataloaders[0].batch_size,
-            tgt_batch_size=128,
-            num_cycles=3,
-            device=DEVICE
+            **config['trainer'],
+            device=device
       )
       print(trainer_conf.model_dump())
-      print(transformer)
-      # summary(transformer, [(500, dl_conf.batch_size), (500, dl_conf.batch_size)], depth=5)
+      summary(transformer, [(500, dl_conf.batch_size), (500, dl_conf.batch_size), 
+                            (500, 500), (500, 500), 
+                            (dl_conf.batch_size, 500), (dl_conf.batch_size, 500)], depth=4)
 
       early_stopper = EarlyStopper(patience=3, min_delta=0.03)
 
-      trainer = Trainer(transformer, translator, early_stopper, trainer_conf, shared_store, run_id='multi30k-small')
+      trainer = Trainer(transformer, translator, early_stopper, trainer_conf, shared_store, run_id=run_id)
 
       trainer.train()
-      print(f'\nEvaluation: meteor_score  - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
+      print(f'\nEvaluation: meteor_score - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
 
       TEST_SEQUENCE = "Ein Mann mit blonden Haar hat ein Haus aus Steinen gebaut ."
       output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
@@ -92,4 +93,5 @@ def main():
       print(f'Input: {TEST_SEQUENCE}, Output: {output}')
       
 if __name__ == '__main__':
-      main()
+      args = parsing_args()
+      main(args)

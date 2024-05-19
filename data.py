@@ -1,6 +1,7 @@
 from typing import List
 import abc
 import random
+from alive_progress import alive_bar
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -95,14 +96,23 @@ class IWSLT2017DataLoader(BaseDataLoader):
         super().__init__(dl_config, tkn_config, shared_store)
         self.dl_config = dl_config
         self.tkn_config = tkn_config
-        
-        self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.tkn_config.src_language}-{self.tkn_config.tgt_language}', cache_dir='./.data/iwslt2017')
-        
-        self.build_datasets()
-
-        self.shared_store.vocab_transform = super().build_vocab()
-        self.shared_store.text_transform = create_text_transform(tkn_config.src_language, tkn_config.tgt_language, 
-                                                                 self.shared_store.token_transform, self.shared_store.vocab_transform)
+        with alive_bar(4, manual=True, title='Creating DataLoaders: ') as bar:
+            self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.tkn_config.src_language}-{self.tkn_config.tgt_language}', cache_dir='./.data/iwslt2017')
+            bar(0.1)
+            bar.text('loaded datasets')
+            
+            self.build_datasets()
+            bar(0.6)
+            bar.text('built datasets')
+            
+            self.shared_store.vocab_transform = super().build_vocab()
+            bar(0.9)
+            bar.text('built vocab')
+            
+            self.shared_store.text_transform = create_text_transform(tkn_config.src_language, tkn_config.tgt_language, 
+                                                                     self.shared_store.token_transform, self.shared_store.vocab_transform)
+            bar(1.)
+            bar.text('Done!')
 
         super().build_dataloaders()
 
@@ -111,10 +121,6 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.test_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["test"]['translation']]
         self.val_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["validation"]['translation']]
 
-        print(f'Sample from trainset: {self.train_dataset[0]}\n'
-              f'Sample from testset: {self.test_dataset[0]}\n'
-              f'Sample from valset: {self.val_dataset[1]}\n')
-
 
 class Multi30kDataLoader(BaseDataLoader):
     def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_store: SharedStore):
@@ -122,11 +128,19 @@ class Multi30kDataLoader(BaseDataLoader):
         self.dl_config = dl_config
         self.tkn_config = tkn_config
 
-        self.build_datasets()
+        with alive_bar(3, manual=True, title='Creating DataLoaders: ') as bar:
+            self.build_datasets()
+            bar(0.6)
+            bar.text('built datasets')
         
-        self.shared_store.vocab_transform = super().build_vocab()
-        self.shared_store.text_transform = create_text_transform(tkn_config.src_language, tkn_config.tgt_language, 
-                                                                 self.shared_store.token_transform, self.shared_store.vocab_transform)
+            self.shared_store.vocab_transform = super().build_vocab()
+            bar(0.9)
+            bar.text('built vocab')
+            
+            self.shared_store.text_transform = create_text_transform(tkn_config.src_language, tkn_config.tgt_language, 
+                                                                     self.shared_store.token_transform, self.shared_store.vocab_transform)
+            bar(1.)
+            bar.text('Done!')
 
         super().build_dataloaders()
 
@@ -143,9 +157,6 @@ class Multi30kDataLoader(BaseDataLoader):
         
         self.val_dataset: List[str, str] = [self.train_dataset[i] for i in val_indices]
         self.train_dataset = [entry for i, entry in enumerate(self.train_dataset) if i not in val_indices]
-
-        print(f'Sample from trainset: {self.train_dataset[0]}\n'
-              f'Sample from valset: {self.val_dataset[0]}\n')
         
 
 def create_text_transform(src_lang, tgt_lang, token_transform, vocab_transform):
