@@ -6,6 +6,7 @@ from torch.optim.lr_scheduler import CyclicLR
 from nltk.translate.meteor_score import meteor_score
 from alive_progress import alive_bar
 from transformer import Seq2SeqTransformer
+from config import TrainerConfig, SharedConfig
 from colorama import Fore, init
 init(autoreset = True)
 
@@ -32,10 +33,15 @@ class Trainer():
     def __init__(self,
                  model: Seq2SeqTransformer,
                  translator, 
+                 train_dataloader,
+                 test_dataloader,
+                 val_dataloader,
+                 vocab_transform,
                  early_stopper: EarlyStopper,
-                 trainer_config,
-                 shared_store, 
+                 trainer_config: TrainerConfig,
+                 shared_config: SharedConfig,
                  run_id: str,
+                 device,
                  resume: bool=False):
         if os.path.exists(f'./results/{run_id}') and not resume:
             print(f'{Fore.RED}Run ID already exists!')
@@ -46,25 +52,26 @@ class Trainer():
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
         
-        self.trainer_config = trainer_config
-        self.shared_store = shared_store
-        self.run_id = run_id
+        self.model = model.to(device)
         self.translator = translator
         
-        STEPSIZE = (len(list(shared_store.dataloaders[0])) /
+        self.num_epochs = trainer_config.num_epochs
+        
+        self.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
+        self.vocab_transform = vocab_transform
+        self.early_stopper = early_stopper
+        
+        self.run_id = run_id
+        
+        STEPSIZE = (len(list(self.dataloaders[0])) /
             (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // trainer_config.num_cycles
         
-        self.model = model
-        self.criterion = nn.CrossEntropyLoss(ignore_index=shared_store.special_symbols.index('<pad>'))
+        self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
         self.optim = torch.optim.AdamW(self.model.parameters())
         self.scheduler = CyclicLR(self.optim, base_lr=2e-6, max_lr=trainer_config.learning_rate, mode='triangular2', 
                      step_size_up=STEPSIZE/2, step_size_down=STEPSIZE/2, cycle_momentum=False)
-        
-        self.early_stopper = early_stopper
-                
-        self.dataloaders = shared_store.dataloaders
-        
-        self.device = trainer_config.device
+                                
+        self.device = device
         self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size
 
         if self.grad_accum:
@@ -156,9 +163,9 @@ class Trainer():
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
 
-                all_preds = [[token for token in self.shared_store.vocab_transform[tgt_language].lookup_tokens(pred_tokens) \
+                all_preds = [[token for token in self.vocab_transform[tgt_language].to_words(pred_tokens) \
                     if token not in ["<bos>", "<eos>", "<pad>"]] for pred_tokens in predictions]
-                all_targets = [[token for token in self.shared_store.vocab_transform[tgt_language].lookup_tokens(tgt_tokens) \
+                all_targets = [[token for token in self.vocab_transform[tgt_language].to_words(tgt_tokens) \
                     if token not in ["<bos>", "<eos>", "<pad>"]] for tgt_tokens in targets]
 
                 meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
@@ -169,11 +176,11 @@ class Trainer():
 
     def train(self):
         try:
-            with alive_bar(self.trainer_config.num_epochs, 
+            with alive_bar(self.num_epochs, 
                            bar='classic', 
                            title="Training:", 
                            title_length=9) as bar:
-                for epoch in range(1, self.trainer_config.num_epochs+1):
+                for epoch in range(1, self.num_epochs+1):
                     train_loss = self._train_epoch()
                     print(f'epoch {epoch} avg_training_loss: {train_loss}')
 
@@ -196,7 +203,7 @@ class Trainer():
         
         model_scripted = torch.jit.script(self.model)
         model_scripted.save(model_filepath)
-        torch.save(self.shared_store.vocab_transform, vocab_file_path)
+        torch.save(self.vocab_transform, vocab_file_path)
         
     def load_model(self):
         filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'

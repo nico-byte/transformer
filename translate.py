@@ -1,9 +1,7 @@
 import torch
 from torch import Tensor
-from config import TokenizerConfig, SharedStore
+from config import TokenizerConfig, SharedConfig
 from data import create_text_transform, load_vocab
-from config import TransformerConfig
-from transformer import Seq2SeqTransformer
 
 
 class Translate():
@@ -61,8 +59,7 @@ class Translate():
             tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
                                             start_symbol=special_symbols.index('<bos>'), 
                                             special_symbols=special_symbols).flatten()
-        return " ".join(vocab_transform[tgt_language].lookup_tokens(\
-            list(tgt_tokens.cpu().numpy()))).replace("<bos>", "").replace("<eos>", "")
+        return " ".join(vocab_transform[tgt_language].to_words(list(tgt_tokens.cpu().numpy()))).replace("<bos>", "").replace("<eos>", "")
         
 
 def translate_sequence(run_id, sequence):
@@ -73,19 +70,19 @@ def translate_sequence(run_id, sequence):
       
     tkn_conf = TokenizerConfig()
     print(tkn_conf.model_dump())
-
-
-    shared_store = SharedStore(
-        token_transform={
-              tkn_conf.src_language: tkn_conf.src_tokenizer,
-              tkn_conf.tgt_language: tkn_conf.tgt_tokenizer
-        }
-    )
     
-    token_transform = shared_store.token_transform
+    tokenizer = {
+            tkn_conf.src_language: tkn_conf.src_tokenizer,
+            tkn_conf.tgt_language: tkn_conf.tgt_tokenizer
+      }
+
+
+    shared_config = SharedConfig()
+    
+    token_transform = tokenizer
     vocab_transform = load_vocab(run_id)
     text_transform = create_text_transform(src_lang, tgt_lang, token_transform, vocab_transform)
-    special_symbols = shared_store.special_symbols
+    special_symbols = shared_config.special_symbols
         
     translator = Translate(checkpoint, device, special_symbols)
     

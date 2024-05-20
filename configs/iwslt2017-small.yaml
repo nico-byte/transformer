@@ -6,9 +6,9 @@ dataloader:
   drop_last: False
   shuffle: True
 transformer:
-  num_encoder_layers: 6
-  num_decoder_layers: 6
-  amb_size: 1024
+  num_encoder_layers: 3
+  num_decoder_layers: 3
+  emb_size: 1024
   dim_feedforward: 2048
   dropout: 0.1
 trainer:
