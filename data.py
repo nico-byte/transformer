@@ -1,8 +1,7 @@
 from typing import List, Dict, Tuple, Any
-import string
+from logger import get_logger
 import abc
 import random
-from alive_progress import alive_bar
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -10,7 +9,6 @@ import torchtext
 torchtext.disable_torchtext_deprecation_warning()
 
 from torchtext.datasets import Multi30k
-from torchtext.vocab import build_vocab_from_iterator
 from datasets import load_dataset
 from config import DataLoaderConfig, TokenizerConfig, SharedConfig
 
@@ -81,6 +79,8 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         
         self.train_dataset, self.val_dataset, self.test_dataset = [], [], []
         self.train_dataloader, self.test_dataloader, self.val_dataloader = None, None, None
+        
+        self.logger = get_logger('DataLoader')
 
     @abc.abstractmethod
     def build_datasets(self):
@@ -143,25 +143,20 @@ class IWSLT2017DataLoader(BaseDataLoader):
     def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, tokenizer: Any, shared_config: SharedConfig):
         super().__init__(dl_config, tokenizer, tkn_config, shared_config)
         
-        with alive_bar(4, manual=True, title='Creating DataLoaders: ') as bar:
-            self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
-            bar(0.1)
-            bar.text('loaded datasets')
+        self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
             
-            self.build_datasets()
-            bar(0.6)
-            bar.text('built datasets')
+        self.build_datasets()
+        self.logger.info('Datasets have benn loaded.')
             
-            self.vocab_transform = super().build_vocab()
-            bar(0.9)
-            bar.text('built vocab')
+        self.vocab_transform = super().build_vocab()
+        self.logger.info('Vcabulary have benn built.')
             
-            self.text_transform = create_text_transform(self.src_language, self.tgt_language, 
+        self.text_transform = create_text_transform(self.src_language, self.tgt_language, 
                                                         self.tokenizer, self.vocab_transform)
-            bar(1.)
-            bar.text('Done!')
+        self.logger.info('Text Transform have been instantiated.')
 
         super().build_dataloaders()
+        self.logger.info('Dataloaders have been built.')
 
     def build_datasets(self):
         self.train_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["train"]['translation']]
@@ -173,21 +168,18 @@ class Multi30kDataLoader(BaseDataLoader):
     def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, tokenizer: Any, shared_config: SharedConfig):
         super().__init__(dl_config, tokenizer, tkn_config, shared_config)
 
-        with alive_bar(3, manual=True, title='Creating DataLoaders: ') as bar:
-            self.build_datasets()
-            bar(0.6)
-            bar.text('built datasets')
-        
-            self.vocab_transform = super().build_vocab()
-            bar(0.9)
-            bar.text('built vocab')
+        self.build_datasets()
+        self.logger.info('Datasets have benn loaded.')
             
-            self.text_transform = create_text_transform(self.src_language, self.tgt_language, 
+        self.vocab_transform = super().build_vocab()
+        self.logger.info('Vcabulary have benn built.')
+            
+        self.text_transform = create_text_transform(self.src_language, self.tgt_language, 
                                                         self.tokenizer, self.vocab_transform)
-            bar(1.)
-            bar.text('Done!')
+        self.logger.info('Text Transform have been instantiated.')
 
         super().build_dataloaders()
+        self.logger.info('Dataloaders have been built.')
 
     def build_datasets(self):
         self.train_dataset: List[str, str] = list(Multi30k(root='./.data/multi30k', split='train',

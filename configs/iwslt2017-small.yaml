@@ -8,12 +8,12 @@ dataloader:
 transformer:
   num_encoder_layers: 3
   num_decoder_layers: 3
-  emb_size: 1024
-  dim_feedforward: 2048
+  emb_size: 512
+  dim_feedforward: 1024
   dropout: 0.1
 trainer:
   learning_rate: 0.0001
-  num_epochs: 100
+  num_epochs: 15
   batch_size: 32
   tgt_batch_size: 1024
   num_cycles: 6

@@ -8,7 +8,7 @@ from data import IWSLT2017DataLoader, Multi30kDataLoader
 from transformer import Seq2SeqTransformer
 from trainer import Trainer, EarlyStopper
 from config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
-from translate import Processor
+from processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
 
 nltk.download('wordnet', download_dir='./.venv/share/nltk_data')

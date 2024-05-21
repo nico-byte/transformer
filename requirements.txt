@@ -7,7 +7,6 @@ torchsummary==1.5.1
 torchtext==0.18.0
 datasets==2.19.1
 nltk==3.8.1
-alive-progress==3.1.5
 pydantic==2.7.0
 pydantic_core==2.18.1
 portalocker>=2.0.0

@@ -4,11 +4,10 @@ import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import CyclicLR
 from nltk.translate.meteor_score import meteor_score
-from alive_progress import alive_bar
 from transformer import Seq2SeqTransformer
 from config import TrainerConfig, SharedConfig
-from colorama import Fore, init
-init(autoreset = True)
+from time import perf_counter
+from logger import get_logger
 
 
 class EarlyStopper:
@@ -17,6 +16,7 @@ class EarlyStopper:
         self.min_delta: int = min_delta
         self.counter: int = 0
         self.min_validation_loss: float = float('inf')
+        self.logger = get_logger('EarlyStopper')
 
     def early_stop(self, validation_loss):
         if validation_loss < self.min_validation_loss:
@@ -24,6 +24,7 @@ class EarlyStopper:
             self.counter = 0
         elif validation_loss > (self.min_validation_loss + self.min_delta):
             self.counter += 1
+            self.logger.info(f'{self.counter} epochs without improvement. {self.patience - self.counter} epochs left unless model improves.')
             if self.counter >= self.patience:
                 return True
         return False
@@ -44,7 +45,7 @@ class Trainer():
                  device,
                  resume: bool=False):
         if os.path.exists(f'./results/{run_id}') and not resume:
-            print(f'{Fore.RED}Run ID already exists!')
+            self.logger.error(f'Run ID already exists!')
             sys.exit(1)
         elif not resume:
             os.makedirs(f'./results/{run_id}')
@@ -78,6 +79,7 @@ class Trainer():
             self.accumulation_steps = trainer_config.tgt_batch_size // self.dataloaders[0].batch_size \
                 if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
 
+        self.logger = get_logger('Trainer')
 
     def _train_epoch(self) -> float:
         self.model.train()
@@ -176,23 +178,20 @@ class Trainer():
 
     def train(self):
         try:
-            with alive_bar(self.num_epochs, 
-                           bar='classic', 
-                           title="Training:", 
-                           title_length=9) as bar:
-                for epoch in range(1, self.num_epochs+1):
-                    train_loss = self._train_epoch()
-                    print(f'epoch {epoch} avg_training_loss: {train_loss}')
+            for epoch in range(1, self.num_epochs+1):
+                start_time = perf_counter()
+                train_loss = self._train_epoch()
+                self.logger.info(f'epoch {epoch} avg_training_loss: {round(train_loss, 3)} ({round(perf_counter()-start_time, 3)}s)')
 
-                    test_loss = self._test_epoch()
-                    print(f'{Fore.CYAN}epoch {epoch} avg_test_loss:     {test_loss}')
+                start_time = perf_counter()
+                test_loss = self._test_epoch()
+                self.logger.info(f'epoch {epoch} avg_test_loss: {round(test_loss, 3)} ({round(perf_counter()-start_time, 3)}s)')
 
-                    if self.early_stopper.early_stop(test_loss):
-                        self._save_model()
-                        break
-                    bar()
+                if self.early_stopper.early_stop(test_loss):
+                    self._save_model()
+                    break
         except KeyboardInterrupt:
-            print(f'\n{Fore.RED}Training interrupted by user')
+            self.logger.error(f'Training interrupted by user')
             sys.exit(0)
             
         self._save_model()
@@ -204,7 +203,9 @@ class Trainer():
         model_scripted = torch.jit.script(self.model)
         model_scripted.save(model_filepath)
         torch.save(self.vocab_transform, vocab_file_path)
+        self.logger.info(f'Saved model checkpoint and vocab to {model_filepath[-13:]}')
         
     def load_model(self):
         filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
         self.model = torch.jit.script(filepath)
+        self.logger.info(f'Model checkpoint have benn loaded from {filepath}')
