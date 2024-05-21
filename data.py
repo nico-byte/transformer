@@ -32,8 +32,7 @@ class Vocabulary:
         self.num_words: int = 4
             
     def add_words(self, words: List[str]) -> List[int]:
-        if not isinstance(words, List):
-            words = [words]
+        if not isinstance(words, List): words = [words]
         for word in words:
             if word not in self.word2index:
                 # First entry of word into vocabulary
@@ -46,8 +45,7 @@ class Vocabulary:
                 self.word2count[word] += 1
     
     def to_words(self, indices: List[int]) -> List[str]:
-        if not isinstance(indices, List):
-            indices = [indices]
+        if not isinstance(indices, List): indices = [indices]
         words = []
         for index in indices:
             if index not in self.index2word:
@@ -57,8 +55,7 @@ class Vocabulary:
         return words
     
     def to_index(self, words: List[str]) -> List[int]:
-        if not isinstance(words, List):
-            words = [words]
+        if not isinstance(words, List): words = [words]
         indices = []
         for word in words:
             if word not in self.word2index:

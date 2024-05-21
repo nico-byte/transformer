@@ -4,7 +4,7 @@ from config import TokenizerConfig, SharedConfig
 from data import create_text_transform, load_vocab
 
 
-class Translate():
+class Processor():
     def __init__(self, model, device, special_symbols):
         self.model = model
         self.device = device
@@ -84,7 +84,7 @@ def translate_sequence(run_id, sequence):
     text_transform = create_text_transform(src_lang, tgt_lang, token_transform, vocab_transform)
     special_symbols = shared_config.special_symbols
         
-    translator = Translate(checkpoint, device, special_symbols)
+    translator = Processor(checkpoint, device, special_symbols)
     
     output = translator.translate(sequence, src_language=src_lang, 
           tgt_language=tgt_lang, text_transform=text_transform, vocab_transform=vocab_transform, 
@@ -93,6 +93,6 @@ def translate_sequence(run_id, sequence):
     print(f'Input: {sequence}, Output: {output}')
     
 if __name__ == '__main__':
-    sequence = "Ein Mann mit blonden Haar hat ein Haus aus Steinen gebaut ."
+    sequence = "Eine Gruppe Pinguine steht vor einem Iglu und lacht sich tot ."
     run_id = "multi30k-small"
     translate_sequence(run_id, sequence)

@@ -8,7 +8,7 @@ from data import IWSLT2017DataLoader, Multi30kDataLoader
 from transformer import Seq2SeqTransformer
 from trainer import Trainer, EarlyStopper
 from config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
-from translate import Translate
+from translate import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
 
 nltk.download('wordnet', download_dir='./.venv/share/nltk_data')
@@ -60,7 +60,7 @@ def main(args):
       )
 
       transformer = Seq2SeqTransformer(model_conf)
-      translator = Translate(transformer, device, shared_conf.special_symbols)
+      translator = Processor(transformer, device, shared_conf.special_symbols)
 
       trainer_conf = TrainerConfig(
             **config['trainer'],
@@ -78,7 +78,7 @@ def main(args):
       trainer.train()
       print(f'\nEvaluation: meteor_score - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
 
-      TEST_SEQUENCE = "Ein Mann mit blonden Haar hat ein Haus aus Steinen gebaut ."
+      TEST_SEQUENCE = "Eine Gruppe Pinguine steht vor einem Iglu und lacht sich tot ."
       output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
             tgt_language=tkn_conf.tgt_language, text_transform=text_transform, 
             vocab_transform=vocab_transform, special_symbols=shared_conf.special_symbols)

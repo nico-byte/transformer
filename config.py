@@ -13,7 +13,7 @@ class BaseModel(PydanticBaseModel):
 
 
 class SharedConfig(BaseModel):
-    special_symbols: List[str] = ['<pad>', '<eos>', '<bos>', '<unk>']
+    special_symbols: List[str] = ['<unk>', '<bos>', '<eos>', '<pad>']
 
 
 class TokenizerConfig(BaseModel):
