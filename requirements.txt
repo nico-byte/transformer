@@ -1,5 +1,5 @@
---find-links https://download.pytorch.org/whl/cu121/torch_stable.html
-torch==2.3.0+cu121
+# --find-links https://download.pytorch.org/whl/cu121/torch_stable.html
+# torch==2.3.0+cu121
 torchdata==0.7.1
 torcheval==0.0.7
 torchinfo==1.8.0
