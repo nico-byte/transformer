@@ -16,4 +16,5 @@ en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en
 colorama==0.4.6
 transformers==4.41.0
 sentencepiece==0.2.0
+gradio==4.31.5
 jupyter

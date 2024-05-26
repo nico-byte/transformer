@@ -7,3 +7,4 @@ results
 nohup.out
 .transformers
 *.log
+flagged
