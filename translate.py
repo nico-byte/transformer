@@ -2,11 +2,12 @@ import torch
 from processor import Processor
 from config import TokenizerConfig, SharedConfig
 from data import create_text_transform, load_vocab
-        
+
 
 def translate_sequence(run_id, sequence):
     checkpoint = torch.jit.load(f'./results/{run_id}/checkpoint.pt')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    checkpoint.to(device)
     src_lang = 'de'
     tgt_lang = 'en'
       
