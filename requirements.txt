@@ -15,4 +15,5 @@ de-dep-news-trf @ https://github.com/explosion/spacy-models/releases/download/de
 en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.3/en_core_web_trf-3.7.3-py3-none-any.whl#sha256=f72abb34bdf174876bd4267b29b2501677e605e0a251fdc56c163003182ed68b
 colorama==0.4.6
 transformers==4.41.0
+sentencepiece==0.2.0
 jupyter

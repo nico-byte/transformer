@@ -45,7 +45,7 @@ class Trainer():
                  device,
                  resume: bool=False):
         if os.path.exists(f'./results/{run_id}') and not resume:
-            self.logger.error(f'Run ID already exists!')
+            self.logger.error('Run ID already exists!')
             sys.exit(1)
         elif not resume:
             os.makedirs(f'./results/{run_id}')
@@ -144,7 +144,6 @@ class Trainer():
 
     def evaluate(self, tgt_language) -> float:
         self.model.eval()
-        losses = 0
         avg_meteor = 0
         with torch.no_grad():
             for src, tgt in self.dataloaders[-1]:
@@ -157,10 +156,7 @@ class Trainer():
 
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                     logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
-                    tgt_out = tgt[1:, :]
-                    loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
                 
-                losses += loss.item()
                 predictions = torch.argmax(logits, dim=-1)
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
@@ -171,7 +167,7 @@ class Trainer():
                     if token not in ["<bos>", "<eos>", "<pad>"]] for tgt_tokens in targets]
 
                 meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
-                    if not len(preds) == 0]) / len(all_targets)
+                    if len(preds) != 0]) / len(all_targets)
                 avg_meteor += meteor
 
         return avg_meteor / len(list(self.dataloaders[-1]))
@@ -191,7 +187,7 @@ class Trainer():
                     self._save_model()
                     break
         except KeyboardInterrupt:
-            self.logger.error(f'Training interrupted by user')
+            self.logger.error('Training interrupted by user')
             sys.exit(0)
             
         self._save_model()

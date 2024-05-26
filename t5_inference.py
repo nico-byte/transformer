@@ -1,24 +1,19 @@
-from torchtext.models import T5_BASE_GENERATION
-from torchtext.prototype.generate import GenerationUtils
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 
 def get_base_model():
-    t5_base = T5_BASE_GENERATION
-    transform = t5_base.transform()
-    model = t5_base.get_model()
+    tokenizer = T5Tokenizer.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/")
+    model = T5ForConditionalGeneration.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/")
     
-    sequence_generator = GenerationUtils(model)
-    
-    return model, transform, sequence_generator
+    return tokenizer, model
 
 
-def t5_inference(model, transform, sequence_generator, sequence, device):
+def t5_inference(tokenizer, model, sequence, device):
     model.to(device)
     model.eval()
 
     sequence = ["translate English to German: " + sequence]
-    model_input = transform(sequence)
-    model_output = sequence_generator.generate(model_input, eos_idx=1, num_beams=1)
-    output_sequence = transform.decode(model_output.tolist())
+    input_ids = tokenizer(sequence, return_tensors="pt").input_ids.to(device)
+    outputs = model.generate(input_ids, max_length=256)
 
-    return output_sequence[0]
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)

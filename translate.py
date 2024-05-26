@@ -37,8 +37,8 @@ def translate_sequence_from_checkpoint(run_id, sequence, device):
     
     
 def translate_sequence_from_t5(sequence, device):
-    model, transform, sequence_generator = get_base_model()
-    output = t5_inference(model, transform, sequence_generator, sequence, device)
+    tokenizer, model = get_base_model()
+    output = t5_inference(tokenizer, model, sequence, device)
     print(output)
     
 
@@ -47,7 +47,8 @@ def check_device(dvc=None):
         try:
             device = torch.device(dvc)
             return device
-        except:
+        except RuntimeError as e:
+            print(e)
             print(f'Device {dvc} is not available. Defaulting to CPU.')
             return torch.device('cpu')
     
