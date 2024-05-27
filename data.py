@@ -217,8 +217,8 @@ def tensor_transform(token_ids: List[int]):
                       torch.tensor(token_ids),
                       torch.tensor([special_symbols.index('<eos>')])))
     
-def load_vocab(run_id: str):
-        vocab_file_path = f'./results/{run_id}/vocab.pth'
+def load_vocab(vocab: str):
+        vocab_file_path = vocab
         
         return torch.load(vocab_file_path)
         

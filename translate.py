@@ -5,11 +5,11 @@ from data import create_text_transform, load_vocab
 from t5_inference import get_base_model, t5_inference
 
 
-def translate_sequence_from_checkpoint(run_id, sequence, device):    
-    checkpoint = torch.jit.load(f'./results/{run_id}/checkpoint.pt')
+def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):    
+    checkpoint = torch.jit.load(checkpoint)
     checkpoint.to(device)
-    src_lang = 'de'
-    tgt_lang = 'en'
+    src_lang = 'en'
+    tgt_lang = 'de'
       
     tkn_conf = TokenizerConfig()
     print(tkn_conf.model_dump())
@@ -23,7 +23,7 @@ def translate_sequence_from_checkpoint(run_id, sequence, device):
     shared_config = SharedConfig()
     
     token_transform = tokenizer
-    vocab_transform = load_vocab(run_id)
+    vocab_transform = load_vocab(vocab)
     text_transform = create_text_transform(src_lang, tgt_lang, token_transform, vocab_transform)
     special_symbols = shared_config.special_symbols
         
@@ -69,4 +69,6 @@ if __name__ == '__main__':
         translate_sequence_from_t5(sequence, device)
     else:
         run_id = "multi30k-small"
-        translate_sequence_from_checkpoint(run_id, sequence, device)
+        checkpoint_path = f'./results/{run_id}/checkpoint.pt'
+        vocab_path = f'./results/{run_id}/vocab.pth'
+        translate_sequence_from_checkpoint(checkpoint_path, vocab_path, sequence, device)
