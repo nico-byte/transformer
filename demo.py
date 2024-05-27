@@ -24,7 +24,7 @@ class ModelConfig:
     def set_custom_model(self, model, vocab):
         model = self.process_file(model)
         vocab = self.process_file(vocab)
-        if not isinstance(model, str) or not isinstance(vocab, str):
+        if not model.endswith('.pt') or not vocab.endswith('.pth'):
             return f"Please provide a model and vocab, {model}; {vocab}"
         try:
             self.model, self.vocab, self.tokenizer = model, vocab, None
