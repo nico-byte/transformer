@@ -1,7 +1,5 @@
-from typing import List, Dict, Any
+from typing import List, Any
 from pydantic import BaseModel as PydanticBaseModel
-import torch
-from transformers import AutoTokenizer
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from torchtext.data.utils import get_tokenizer
@@ -17,10 +15,10 @@ class SharedConfig(BaseModel):
 
 
 class TokenizerConfig(BaseModel):
-    src_language: str = 'de'
-    tgt_language: str = 'en'
-    src_tokenizer: Any = get_tokenizer('spacy', language='de_dep_news_trf')
-    tgt_tokenizer: Any = get_tokenizer('spacy', language='en_core_web_trf')
+    src_language: str = 'en'
+    tgt_language: str = 'de'
+    src_tokenizer: Any = get_tokenizer('spacy', language='en_core_web_trf')
+    tgt_tokenizer: Any = get_tokenizer('spacy', language='de_dep_news_trf')
 
 
 class DataLoaderConfig(PydanticBaseModel):

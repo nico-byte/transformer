@@ -1,4 +1,6 @@
 import gradio as gr
+import os
+import shutil
 from translate import check_device, translate_sequence_from_checkpoint
 from t5_inference import get_base_model, t5_inference
 
@@ -16,16 +18,28 @@ class ModelConfig:
             self.model, self.tokenizer, self.vocab = model, tokenizer, None
             return f"T5 Model loaded: {self.model}, {self.tokenizer}"
         except RuntimeError as e:
-            return e
+            print(e)
+            return "Something went wrong!"
         
     def set_custom_model(self, model, vocab):
-        if model or vocab is None:
-            return "Please provide a model and vocab"
+        model = self.process_file(model)
+        vocab = self.process_file(vocab)
+        if not isinstance(model, str) or not isinstance(vocab, str):
+            return f"Please provide a model and vocab, {model}; {vocab}"
         try:
             self.model, self.vocab, self.tokenizer = model, vocab, None
             return f"Custom Model loaded: {self.model}, {self.vocab}"
         except RuntimeError as e:
-            return e
+            return "Something went wrong!"
+        
+    @staticmethod
+    def process_file(fileobj):
+        if not os.path.exists('./.temps'):
+            os.makedirs('./.temps')
+        
+        path = "./.temps/" + os.path.basename(fileobj)
+        shutil.copyfile(fileobj.name, path)
+        return str(path)
         
     def _translate_t5(self, sequence):
         try:

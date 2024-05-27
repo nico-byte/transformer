@@ -6,13 +6,11 @@ from t5_inference import get_base_model, t5_inference
 
 
 def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):    
-    checkpoint = torch.jit.load(checkpoint)
-    checkpoint.to(device)
+    checkpoint = torch.jit.load(checkpoint, map_location=device)
     src_lang = 'en'
     tgt_lang = 'de'
       
     tkn_conf = TokenizerConfig()
-    print(tkn_conf.model_dump())
     
     tokenizer = {
             tkn_conf.src_language: tkn_conf.src_tokenizer,
@@ -33,13 +31,7 @@ def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):
           tgt_language=tgt_lang, text_transform=text_transform, vocab_transform=vocab_transform, 
           special_symbols=special_symbols)
     
-    print(f'Input: {sequence}, Output: {output}')
-    
-    
-def translate_sequence_from_t5(sequence, device):
-    tokenizer, model = get_base_model(device)
-    output = t5_inference(tokenizer, model, sequence, device)
-    print(output)
+    return output    
     
 
 def check_device(dvc=None):
@@ -60,15 +52,3 @@ def check_device(dvc=None):
         device = torch.device("cpu")
 
     return device
-    
-if __name__ == '__main__':
-    sequence = "A group of penguins standing in front of an igloo, laughing until they're completely exhausted."
-    model = 't5'
-    device = check_device('cpu')
-    if model == 't5':
-        translate_sequence_from_t5(sequence, device)
-    else:
-        run_id = "multi30k-small"
-        checkpoint_path = f'./results/{run_id}/checkpoint.pt'
-        vocab_path = f'./results/{run_id}/vocab.pth'
-        translate_sequence_from_checkpoint(checkpoint_path, vocab_path, sequence, device)
