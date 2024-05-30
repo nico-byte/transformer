@@ -2,7 +2,7 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 
 def get_base_model(device):
-    tokenizer = T5Tokenizer.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/")
+    tokenizer = T5Tokenizer.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/", legacy=False)
     model = T5ForConditionalGeneration.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/")
     
     return tokenizer, model.to(device)
