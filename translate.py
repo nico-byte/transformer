@@ -2,10 +2,9 @@ import torch
 from processor import Processor
 from config import TokenizerConfig, SharedConfig
 from data import create_text_transform, load_vocab
-from t5_inference import get_base_model, t5_inference
 
 
-def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):    
+def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):
     checkpoint = torch.jit.load(checkpoint, map_location=device)
     src_lang = 'en'
     tgt_lang = 'de'
