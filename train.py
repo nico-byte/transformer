@@ -6,6 +6,7 @@ import argparse
 import nltk
 from data import IWSLT2017DataLoader, Multi30kDataLoader
 from transformer import Seq2SeqTransformer
+from tokenizers import Tokenizer
 from trainer import Trainer, EarlyStopper
 from config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
 from processor import Processor
@@ -31,10 +32,11 @@ def main(args):
             config = yaml.safe_load(stream)
       
       tkn_conf = TokenizerConfig()
+      src_lang, tgt_lang = tkn_conf.src_language, tkn_conf.tgt_language
       
       tokenizer = {
-            tkn_conf.src_language: tkn_conf.src_tokenizer,
-            tkn_conf.tgt_language: tkn_conf.tgt_tokenizer
+            src_lang: Tokenizer.from_file("./tokenizers/wordpiece/cased-en.json"),
+            tgt_lang: Tokenizer.from_file("./tokenizers/wordpiece/cased-de.json")
       }
 
 
@@ -46,11 +48,10 @@ def main(args):
       else:
             dataloader = Multi30kDataLoader(dl_conf, tokenizer, tkn_conf, shared_conf)
             
-      vocab_transform, text_transform = dataloader.vocab_transform, dataloader.text_transform
       train_dataloader, test_dataloader, val_dataloader = dataloader.train_dataloader, dataloader.test_dataloader, dataloader.val_dataloader
             
-      SRC_VOCAB_SIZE = len(vocab_transform[tkn_conf.src_language].index2word)
-      TGT_VOCAB_SIZE = len(vocab_transform[tkn_conf.tgt_language].index2word)
+      SRC_VOCAB_SIZE = tokenizer[src_lang].get_vocab_size()
+      TGT_VOCAB_SIZE = tokenizer[tgt_lang].get_vocab_size()
             
 
       model_conf = TransformerConfig(
@@ -73,15 +74,15 @@ def main(args):
       early_stopper = EarlyStopper(patience=3, min_delta=0)
 
       trainer = Trainer(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
-                        vocab_transform, early_stopper, trainer_conf, shared_conf, run_id, device)
+                        tokenizer[tgt_lang], early_stopper, trainer_conf, shared_conf, run_id, device)
 
       trainer.train()
-      print(f'\nEvaluation: meteor_score - {trainer.evaluate(tgt_language=tkn_conf.tgt_language)}')
+      print(f'\nEvaluation: meteor_score - {trainer.evaluate()}')
 
-      TEST_SEQUENCE = "Eine Gruppe Pinguine steht vor einem Iglu und lacht sich tot ."
+      TEST_SEQUENCE = "A group of penguins stand infront of an igloo."
       output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
-            tgt_language=tkn_conf.tgt_language, text_transform=text_transform, 
-            vocab_transform=vocab_transform, special_symbols=shared_conf.special_symbols)
+            tgt_language=tkn_conf.tgt_language, tokenizer=tokenizer, 
+            special_symbols=shared_conf.special_symbols)
       
       print(f'Input: {TEST_SEQUENCE}, Output: {output}')
       

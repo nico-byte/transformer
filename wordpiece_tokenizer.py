@@ -4,7 +4,7 @@ from datasets import load_dataset
 import os
 
 
-tokenizer = Tokenizer(models.WordPiece())
+tokenizer = Tokenizer(models.WordPiece(unk_token="<unk>"))
 tokenizer.normalizer = normalizers.NFKC()
 tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
 tokenizer.decoder = decoders.WordPiece()

@@ -17,8 +17,6 @@ class SharedConfig(BaseModel):
 class TokenizerConfig(BaseModel):
     src_language: str = 'en'
     tgt_language: str = 'de'
-    src_tokenizer: Any = get_tokenizer('spacy', language='en_core_web_trf')
-    tgt_tokenizer: Any = get_tokenizer('spacy', language='de_dep_news_trf')
 
 
 class DataLoaderConfig(PydanticBaseModel):

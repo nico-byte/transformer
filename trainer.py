@@ -37,7 +37,7 @@ class Trainer():
                  train_dataloader,
                  test_dataloader,
                  val_dataloader,
-                 vocab_transform,
+                 tokenizer,
                  early_stopper: EarlyStopper,
                  trainer_config: TrainerConfig,
                  shared_config: SharedConfig,
@@ -59,7 +59,7 @@ class Trainer():
         self.num_epochs = trainer_config.num_epochs
         
         self.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
-        self.vocab_transform = vocab_transform
+        self.tokenizer = tokenizer
         self.early_stopper = early_stopper
         
         self.run_id = run_id
@@ -142,7 +142,7 @@ class Trainer():
         return losses / len(list(self.dataloaders[1]))
 
 
-    def evaluate(self, tgt_language) -> float:
+    def evaluate(self) -> float:
         self.model.eval()
         avg_meteor = 0
         with torch.no_grad():
@@ -161,9 +161,9 @@ class Trainer():
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
 
-                all_preds = [[token for token in self.vocab_transform[tgt_language].to_words(pred_tokens) \
+                all_preds = [[token for token in self.tokenizer.decode(pred_tokens) \
                     if token not in ["<bos>", "<eos>", "<pad>"]] for pred_tokens in predictions]
-                all_targets = [[token for token in self.vocab_transform[tgt_language].to_words(tgt_tokens) \
+                all_targets = [[token for token in self.tokenizer.decode(tgt_tokens) \
                     if token not in ["<bos>", "<eos>", "<pad>"]] for tgt_tokens in targets]
 
                 meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
@@ -194,12 +194,10 @@ class Trainer():
             
     def _save_model(self):
         model_filepath = f'./results/{self.run_id}/checkpoint.pt'
-        vocab_file_path = f'./results/{self.run_id}/vocab.pth'
         
         model_scripted = torch.jit.script(self.model)
         model_scripted.save(model_filepath)
-        torch.save(self.vocab_transform, vocab_file_path)
-        self.logger.info(f'Saved model checkpoint and vocab to {model_filepath[-13:]}')
+        self.logger.info(f'Saved model checkpoint to {model_filepath[-13:]}')
         
     def load_model(self):
         filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'

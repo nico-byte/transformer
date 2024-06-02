@@ -48,13 +48,13 @@ class Processor():
         return ys
 
     def translate(self, src_sentence: str, src_language: str, tgt_language: str, 
-                  text_transform, vocab_transform, special_symbols) -> str:
+                  tokenizer, special_symbols) -> str:
         self.model.eval()
-        src = text_transform[src_language](src_sentence).view(-1, 1)
+        src = torch.tensor(tokenizer[src_language].encode(src_sentence).ids).view(-1, 1)
         num_tokens = src.shape[0]
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         with torch.no_grad():
             tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
                                             start_symbol=special_symbols.index('<bos>'), 
                                             special_symbols=special_symbols).flatten()
-        return " ".join(vocab_transform[tgt_language].to_words(list(tgt_tokens.cpu().numpy()))).replace("<bos>", "").replace("<eos>", "")
+        return tokenizer[tgt_language].decode(list(tgt_tokens.cpu().numpy()))
