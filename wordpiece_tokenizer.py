@@ -1,7 +1,12 @@
 from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, trainers
 from tokenizers.processors import TemplateProcessing
+import torch
+from torchtext.datasets import Multi30k
 from datasets import load_dataset
 import os
+
+# in case error occurs that it cant be imported by torch
+torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_utils.dill_available()
 
 
 tokenizer = Tokenizer(models.WordPiece(unk_token="<unk>"))
@@ -13,13 +18,15 @@ tokenizer.post_processor = TemplateProcessing(
     special_tokens=[("<bos>", 1), ("<eos>", 2)]
 )
 trainer = trainers.WordPieceTrainer(
-    vocab_size=12288,
+    vocab_size=1640,
     initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
     special_tokens=["<unk>", "<bos>", "<eos>", "<pad>"],
 )
-
+"""
 dataset = load_dataset("iwslt2017", 'iwslt2017-de-en', cache_dir='./.data/iwslt2017')
 dataset = [(d["de"], d["en"]) for d in dataset["train"]['translation']]
+"""
+dataset = list(Multi30k(root='./.data/multi30k', split='train', language_pair=("de", "en")))
 
 de_dataset = [x[0] for x in dataset]
 en_dataset = [x[1] for x in dataset]

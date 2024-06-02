@@ -79,7 +79,7 @@ def main(args):
       trainer.train()
       print(f'\nEvaluation: meteor_score - {trainer.evaluate()}')
 
-      TEST_SEQUENCE = "A group of penguins stand infront of an igloo."
+      TEST_SEQUENCE = "A group of penguins stand in front of an igloo."
       output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
             tgt_language=tkn_conf.tgt_language, tokenizer=tokenizer, 
             special_symbols=shared_conf.special_symbols)
