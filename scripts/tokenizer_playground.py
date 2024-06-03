@@ -1,5 +1,5 @@
-from config import TokenizerConfig, DataLoaderConfig, SharedConfig
-from data import IWSLT2017DataLoader
+from utils.config import TokenizerConfig, DataLoaderConfig, SharedConfig
+from src.data import IWSLT2017DataLoader
 import yaml
 import os
 

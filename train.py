@@ -4,12 +4,12 @@ import yaml
 import argparse
 
 import nltk
-from data import IWSLT2017DataLoader, Multi30kDataLoader
-from transformer import Seq2SeqTransformer
+from src.data import IWSLT2017DataLoader, Multi30kDataLoader
+from src.transformer import Seq2SeqTransformer
 from tokenizers import Tokenizer
-from trainer import Trainer, EarlyStopper
-from config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
-from processor import Processor
+from src.trainer import Trainer, EarlyStopper
+from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
+from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
 
 nltk.download('wordnet', download_dir='./.venv/share/nltk_data')
@@ -35,8 +35,8 @@ def main(args):
       src_lang, tgt_lang = tkn_conf.src_language, tkn_conf.tgt_language
       
       tokenizer = {
-            src_lang: Tokenizer.from_file("./tokenizers/wordpiece/cased-en.json"),
-            tgt_lang: Tokenizer.from_file("./tokenizers/wordpiece/cased-de.json")
+            src_lang: Tokenizer.from_file("./tokenizer/wordpiece/cased-en-multi.json"),
+            tgt_lang: Tokenizer.from_file("./tokenizer/wordpiece/cased-de-multi.json")
       }
 
 
@@ -71,7 +71,7 @@ def main(args):
                             (256, 256), (256, 256), 
                             (dl_conf.batch_size, 256), (dl_conf.batch_size, 256)], depth=4)
 
-      early_stopper = EarlyStopper(patience=3, min_delta=0)
+      early_stopper = EarlyStopper(warmup=trainer_conf.warmup_epochs, patience=3, min_delta=0)
 
       trainer = Trainer(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
                         tokenizer[tgt_lang], early_stopper, trainer_conf, shared_conf, run_id, device)
@@ -79,7 +79,7 @@ def main(args):
       trainer.train()
       print(f'\nEvaluation: meteor_score - {trainer.evaluate()}')
 
-      TEST_SEQUENCE = "A group of penguins stand in front of an igloo."
+      TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
       output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
             tgt_language=tkn_conf.tgt_language, tokenizer=tokenizer, 
             special_symbols=shared_conf.special_symbols)

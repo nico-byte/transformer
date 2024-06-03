@@ -1,7 +1,7 @@
 import torch
-from processor import Processor
-from config import TokenizerConfig, SharedConfig
-from data import create_text_transform, load_vocab
+from src.processor import Processor
+from utils.config import TokenizerConfig, SharedConfig
+from src.data import create_text_transform, load_vocab
 
 
 def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):

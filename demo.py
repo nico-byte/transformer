@@ -1,8 +1,8 @@
 import gradio as gr
 import os
 import shutil
-from translate import check_device, translate_sequence_from_checkpoint
-from t5_inference import get_base_model, t5_inference
+from src.translate import check_device, translate_sequence_from_checkpoint
+from src.t5_inference import get_base_model, t5_inference
 
 device = check_device('cpu')
 

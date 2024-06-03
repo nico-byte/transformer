@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple, Any
-from logger import get_logger
+from utils.logger import get_logger
 import abc
 import random
 import torch
@@ -10,7 +10,7 @@ torchtext.disable_torchtext_deprecation_warning()
 
 from torchtext.datasets import Multi30k
 from datasets import load_dataset
-from config import DataLoaderConfig, TokenizerConfig, SharedConfig
+from utils.config import DataLoaderConfig, TokenizerConfig, SharedConfig
 
 # in case error occurs that it cant be imported by torch
 torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_utils.dill_available()

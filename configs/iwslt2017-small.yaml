@@ -16,4 +16,4 @@ trainer:
   num_epochs: 200
   batch_size: 64
   tgt_batch_size: 512
-  num_cycles: 6
+  warmup_epochs: 10

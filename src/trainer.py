@@ -1,24 +1,47 @@
 import os
 import sys
+import math
+from lion_pytorch import Lion
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import CyclicLR
+from torch.nn import LayerNorm
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from nltk.translate.meteor_score import meteor_score
-from transformer import Seq2SeqTransformer
-from config import TrainerConfig, SharedConfig
+from src.transformer import Seq2SeqTransformer
+from utils.config import TrainerConfig, SharedConfig
 from time import perf_counter
-from logger import get_logger
+from utils.logger import get_logger
+
+
+class CosineAnnealingWarmupLR(_LRScheduler):
+    def __init__(self, optimizer: Optimizer, warmup_epochs: int, total_epochs: int, last_epoch: int = -1):
+        self.warmup_epochs = warmup_epochs
+        self.total_epochs = total_epochs
+        super().__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        if self.last_epoch < self.warmup_epochs:
+            # Linear warmup
+            return [(base_lr / self.warmup_epochs) * (self.last_epoch + 1) for base_lr in self.base_lrs]
+        else:
+            # Cosine annealing
+            cosine_decay = 0.5 * (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.total_epochs - self.warmup_epochs)))
+            return [base_lr * cosine_decay for base_lr in self.base_lrs]
 
 
 class EarlyStopper:
-    def __init__(self, patience: int=1, min_delta: int=0):
+    def __init__(self, warmup: int=5, patience: int=1, min_delta: int=0):
+        self.warmup = warmup
         self.patience: int = patience
         self.min_delta: int = min_delta
         self.counter: int = 0
         self.min_validation_loss: float = float('inf')
         self.logger = get_logger('EarlyStopper')
 
-    def early_stop(self, validation_loss):
+    def early_stop(self, epoch, validation_loss):
+        if epoch < self.warmup:
+            return False
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss
             self.counter = 0
@@ -33,7 +56,7 @@ class EarlyStopper:
 class Trainer():
     def __init__(self,
                  model: Seq2SeqTransformer,
-                 translator, 
+                 translator,
                  train_dataloader,
                  test_dataloader,
                  val_dataloader,
@@ -42,12 +65,13 @@ class Trainer():
                  trainer_config: TrainerConfig,
                  shared_config: SharedConfig,
                  run_id: str,
-                 device,
-                 resume: bool=False):
-        if os.path.exists(f'./results/{run_id}') and not resume:
+                 device):
+        self.logger = get_logger('Trainer')
+        
+        if os.path.exists(f'./results/{run_id}'):
             self.logger.error('Run ID already exists!')
             sys.exit(1)
-        elif not resume:
+        else:
             os.makedirs(f'./results/{run_id}')
         
         self.use_amp = True
@@ -58,19 +82,18 @@ class Trainer():
         
         self.num_epochs = trainer_config.num_epochs
         
+        self.current_epoch = 1
+        
         self.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
         self.tokenizer = tokenizer
         self.early_stopper = early_stopper
         
         self.run_id = run_id
         
-        STEPSIZE = (len(list(self.dataloaders[0])) /
-            (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // trainer_config.num_cycles
-        
         self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
-        self.optim = torch.optim.AdamW(self.model.parameters())
-        self.scheduler = CyclicLR(self.optim, base_lr=2e-6, max_lr=trainer_config.learning_rate, mode='triangular2', 
-                     step_size_up=STEPSIZE/2, step_size_down=STEPSIZE/2, cycle_momentum=False)
+        self.optim = torch.optim.AdamW(self.model.parameters(), lr=trainer_config.learning_rate)
+        # self.optim = Lion(model.parameters(), lr=3.5e-5, betas=(0.95, 0.98), weight_decay=1e-2)
+        self.scheduler = CosineAnnealingWarmupLR(self.optim, trainer_config.warmup_epochs, trainer_config.num_epochs)
                                 
         self.device = device
         self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size
@@ -78,8 +101,14 @@ class Trainer():
         if self.grad_accum:
             self.accumulation_steps = trainer_config.tgt_batch_size // self.dataloaders[0].batch_size \
                 if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
-
-        self.logger = get_logger('Trainer')
+                
+    @classmethod
+    def continue_training(cls, *args, **kwargs):
+        return NotImplementedError
+    
+    @classmethod
+    def from_pretrained(cls, *args, **kwargs):
+        return NotImplementedError
 
     def _train_epoch(self) -> float:
         self.model.train()
@@ -104,18 +133,18 @@ class Trainer():
 
                 self.scaler.step(self.optim)
                 self.scaler.update()
-                self.scheduler.step()
                 # Reset gradients, for the next accumulated batches
                 for param in self.model.parameters():
                     param.grad = None
             else:
                 self.scaler.step(self.optim)
                 self.scaler.update()
-                self.scheduler.step()
                 for param in self.model.parameters():
                     param.grad = None   
 
             losses += loss.item()
+        
+        self.scheduler.step()
 
         return losses / len(list(self.dataloaders[0]))
 
@@ -174,7 +203,7 @@ class Trainer():
 
     def train(self):
         try:
-            for epoch in range(1, self.num_epochs+1):
+            for epoch in range(self.current_epoch, self.num_epochs+1):
                 start_time = perf_counter()
                 train_loss = self._train_epoch()
                 self.logger.info(f'epoch {epoch} avg_training_loss: {round(train_loss, 3)} ({round(perf_counter()-start_time, 3)}s)')
@@ -183,23 +212,48 @@ class Trainer():
                 test_loss = self._test_epoch()
                 self.logger.info(f'epoch {epoch} avg_test_loss: {round(test_loss, 3)} ({round(perf_counter()-start_time, 3)}s)')
 
-                if self.early_stopper.early_stop(test_loss):
-                    self._save_model()
+                self.current_epoch += 1
+                
+                early_stop_true = self.early_stopper.early_stop(epoch, test_loss)
+                counter = self.early_stopper.counter
+                
+                if counter == 1:
+                    self._save_model("best_")
+                
+                if early_stop_true:
+                    self._save_model("last_")
                     break
         except KeyboardInterrupt:
             self.logger.error('Training interrupted by user')
+            self._save_model()
             sys.exit(0)
             
         self._save_model()
             
-    def _save_model(self):
-        model_filepath = f'./results/{self.run_id}/checkpoint.pt'
+    def _save_model(self, name=""):
+        self._save_model_infer(name)
+        self._save_model_train(name)
+    
+    def _save_model_infer(self, name=""):
+        model_filepath = f'./results/{self.run_id}/{name}checkpoint_scripted.pt'
         
         model_scripted = torch.jit.script(self.model)
         model_scripted.save(model_filepath)
-        self.logger.info(f'Saved model checkpoint to {model_filepath[-13:]}')
+        self.logger.info(f'Saved model checkpoint to {model_filepath}')
+        
+    def _save_model_train(self, name=""):
+        model_filepath = f'./results/{self.run_id}/{name}checkpoint.pt'
+        
+        torch.save({
+            'epoch': self.current_epoch,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optim.state_dict(),
+            'optimizer_state_dict': self.scheduler.state_dict(),
+            }, model_filepath)
+        
+        self.logger.info(f'Saved model checkpoint to {model_filepath}')
         
     def load_model(self):
-        filepath = f'./results/{self.run_id}/tbc_checkpoint.pt'
+        filepath = f'./results/{self.run_id}/checkpoint.pt'
         self.model = torch.jit.script(filepath)
-        self.logger.info(f'Model checkpoint have benn loaded from {filepath}')
+        self.logger.info(f'Model checkpoint have been loaded from {filepath}')
