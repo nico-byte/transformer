@@ -4,30 +4,13 @@ import math
 from lion_pytorch import Lion
 import torch
 import torch.nn as nn
-from torch.nn import LayerNorm
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import OneCycleLR, CyclicLR
+from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
 from nltk.translate.meteor_score import meteor_score
 from src.transformer import Seq2SeqTransformer
 from utils.config import TrainerConfig, SharedConfig
 from time import perf_counter
 from utils.logger import get_logger
-
-
-class CosineAnnealingWarmupLR(_LRScheduler):
-    def __init__(self, optimizer: Optimizer, warmup_epochs: int, total_epochs: int, last_epoch: int = -1):
-        self.warmup_epochs = warmup_epochs
-        self.total_epochs = total_epochs
-        super().__init__(optimizer, last_epoch)
-
-    def get_lr(self):
-        if self.last_epoch < self.warmup_epochs:
-            # Linear warmup
-            return [(base_lr / self.warmup_epochs) * (self.last_epoch + 1) for base_lr in self.base_lrs]
-        else:
-            # Cosine annealing
-            cosine_decay = 0.5 * (1 + math.cos(math.pi * (self.last_epoch - self.warmup_epochs) / (self.total_epochs - self.warmup_epochs)))
-            return [base_lr * cosine_decay for base_lr in self.base_lrs]
 
 
 class EarlyStopper:
@@ -68,12 +51,6 @@ class Trainer():
                  device):
         self.logger = get_logger('Trainer')
         
-        if os.path.exists(f'./results/{run_id}'):
-            self.logger.error('Run ID already exists!')
-            sys.exit(1)
-        else:
-            os.makedirs(f'./results/{run_id}')
-        
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
         
@@ -90,11 +67,32 @@ class Trainer():
         
         self.run_id = run_id
         
+        step_size = len(list(train_dataloader))
+        
+        CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 6
+        
         self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
-        self.optim = torch.optim.AdamW(self.model.parameters(), lr=trainer_config.learning_rate)
-        # self.optim = Lion(model.parameters(), lr=3.5e-5, betas=(0.95, 0.98), weight_decay=1e-2)
-        self.scheduler = CosineAnnealingWarmupLR(self.optim, trainer_config.warmup_epochs, trainer_config.num_epochs)
-                                
+        self.optim = torch.optim.AdamW(self.model.parameters(), 
+                                       lr=trainer_config.learning_rate, 
+                                       amsgrad=True)
+        
+        self.scheduler = CyclicLR(self.optim, 
+                                  base_lr=2e-6, 
+                                  max_lr=trainer_config.learning_rate, 
+                                  mode='triangular2', 
+                                  step_size_up=CYCLE_STEPSIZE/2, 
+                                  step_size_down=CYCLE_STEPSIZE/2, 
+                                  cycle_momentum=False)
+        """
+        self.optim = Lion(model.parameters(), lr=trainer_config.learning_rate/3, betas=(0.95, 0.98), weight_decay=1e-2)
+        self.scheduler = OneCycleLR(self.optim,
+                                    max_lr=trainer_config.learning_rate, 
+                                    total_steps=step_size*self.num_epochs, 
+                                    anneal_strategy="cos", 
+                                    cycle_momentum=False, 
+                                    pct_start=0.3
+                                    )                
+        """
         self.device = device
         self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size
 
@@ -133,19 +131,19 @@ class Trainer():
 
                 self.scaler.step(self.optim)
                 self.scaler.update()
+                self.scheduler.step()
                 # Reset gradients, for the next accumulated batches
                 for param in self.model.parameters():
                     param.grad = None
             else:
                 self.scaler.step(self.optim)
                 self.scaler.update()
+                self.scheduler.step()
                 for param in self.model.parameters():
                     param.grad = None   
 
             losses += loss.item()
         
-        self.scheduler.step()
-
         return losses / len(list(self.dataloaders[0]))
 
 
@@ -235,25 +233,25 @@ class Trainer():
         self._save_model_train(name)
     
     def _save_model_infer(self, name=""):
-        model_filepath = f'./results/{self.run_id}/{name}checkpoint_scripted.pt'
+        model_filepath = f'./models/{self.run_id}/{name}checkpoint_scripted.pt'
         
         model_scripted = torch.jit.script(self.model)
         model_scripted.save(model_filepath)
         self.logger.info(f'Saved model checkpoint to {model_filepath}')
         
     def _save_model_train(self, name=""):
-        model_filepath = f'./results/{self.run_id}/{name}checkpoint.pt'
+        model_filepath = f'./models/{self.run_id}/{name}checkpoint.pt'
         
         torch.save({
             'epoch': self.current_epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optim.state_dict(),
-            'optimizer_state_dict': self.scheduler.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict(),
             }, model_filepath)
         
         self.logger.info(f'Saved model checkpoint to {model_filepath}')
         
     def load_model(self):
-        filepath = f'./results/{self.run_id}/checkpoint.pt'
+        filepath = f'./models/{self.run_id}/checkpoint.pt'
         self.model = torch.jit.script(filepath)
         self.logger.info(f'Model checkpoint have been loaded from {filepath}')

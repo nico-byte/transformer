@@ -2,7 +2,6 @@ from typing import List, Any
 from pydantic import BaseModel as PydanticBaseModel
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-from torchtext.data.utils import get_tokenizer
 
 
 class BaseModel(PydanticBaseModel):
@@ -12,6 +11,7 @@ class BaseModel(PydanticBaseModel):
 
 class SharedConfig(BaseModel):
     special_symbols: List[str] = ['<unk>', '<bos>', '<eos>', '<pad>']
+    run_id: str = None
 
 
 class TokenizerConfig(BaseModel):

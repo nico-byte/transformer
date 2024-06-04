@@ -2,11 +2,13 @@ from torchinfo import summary
 import warnings
 import yaml
 import argparse
+import os
+import sys
 
 import nltk
 from src.data import IWSLT2017DataLoader, Multi30kDataLoader
+from utils.logger import get_logger
 from src.transformer import Seq2SeqTransformer
-from tokenizers import Tokenizer
 from src.trainer import Trainer, EarlyStopper
 from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
 from src.processor import Processor
@@ -28,30 +30,32 @@ def main(args):
       run_id = args.run_id
       device = args.torch_device
       
+      logger = get_logger("Main")
+      
+      if os.path.exists(f'./models/{run_id}'):
+            logger.error('Run ID already exists!')
+            sys.exit(1)
+      else:
+            os.makedirs(f'./models/{run_id}')
+      
       with open(path_to_config) as stream:
             config = yaml.safe_load(stream)
       
       tkn_conf = TokenizerConfig()
-      src_lang, tgt_lang = tkn_conf.src_language, tkn_conf.tgt_language
-      
-      tokenizer = {
-            src_lang: Tokenizer.from_file("./tokenizer/wordpiece/cased-en-multi.json"),
-            tgt_lang: Tokenizer.from_file("./tokenizer/wordpiece/cased-de-multi.json")
-      }
 
 
-      shared_conf = SharedConfig()
+      shared_conf = SharedConfig(run_id=run_id)
       dl_conf = DataLoaderConfig(**config['dataloader'])
 
       if dl_conf.dataset == "iwslt2017":
-            dataloader = IWSLT2017DataLoader(dl_conf, tokenizer, tkn_conf, shared_conf)
+            dataloader = IWSLT2017DataLoader(dl_conf, tkn_conf, shared_conf)
       else:
-            dataloader = Multi30kDataLoader(dl_conf, tokenizer, tkn_conf, shared_conf)
+            dataloader = Multi30kDataLoader(dl_conf, tkn_conf, shared_conf)
             
-      train_dataloader, test_dataloader, val_dataloader = dataloader.train_dataloader, dataloader.test_dataloader, dataloader.val_dataloader
+      train_dataloader, test_dataloader, val_dataloader, tokenizer = dataloader.train_dataloader, dataloader.test_dataloader, dataloader.val_dataloader, dataloader.tokenizer
             
-      SRC_VOCAB_SIZE = tokenizer[src_lang].get_vocab_size()
-      TGT_VOCAB_SIZE = tokenizer[tgt_lang].get_vocab_size()
+      SRC_VOCAB_SIZE = tokenizer['src'].get_vocab_size()
+      TGT_VOCAB_SIZE = tokenizer['tgt'].get_vocab_size()
             
 
       model_conf = TransformerConfig(
@@ -71,10 +75,10 @@ def main(args):
                             (256, 256), (256, 256), 
                             (dl_conf.batch_size, 256), (dl_conf.batch_size, 256)], depth=4)
 
-      early_stopper = EarlyStopper(warmup=trainer_conf.warmup_epochs, patience=3, min_delta=0)
+      early_stopper = EarlyStopper(warmup=trainer_conf.warmup_epochs, patience=7, min_delta=0)
 
       trainer = Trainer(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
-                        tokenizer[tgt_lang], early_stopper, trainer_conf, shared_conf, run_id, device)
+                        tokenizer['tgt'], early_stopper, trainer_conf, shared_conf, run_id, device)
 
       trainer.train()
       print(f'\nEvaluation: meteor_score - {trainer.evaluate()}')

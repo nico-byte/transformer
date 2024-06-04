@@ -3,6 +3,7 @@ __pycache__
 .nltk
 .ruff_cache
 results
+models
 .venv
 nohup.out
 .transformers

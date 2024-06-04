@@ -12,8 +12,8 @@ transformer:
   dim_feedforward: 1024
   dropout: 0.1
 trainer:
-  learning_rate: 0.0001
-  num_epochs: 100
+  learning_rate: 0.00009
+  num_epochs: 200
   batch_size: 128
   tgt_batch_size: 128
-  warmup_epochs: 30
+  warmup_epochs: 10
