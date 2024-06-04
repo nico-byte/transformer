@@ -2,6 +2,7 @@ from typing import List, Dict, Tuple, Any
 from utils.logger import get_logger
 import abc
 import random
+from tokenizers import Tokenizer
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -120,8 +121,10 @@ class Multi30kDataLoader(BaseDataLoader):
         train_dataset = [list(i) for i in zip(*self.train_dataset)]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
-            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)
+            tokenizer_path = wordpiece_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
+            self.tokenizer['src'] = Tokenizer.from_file(tokenizer_path)
+            tokenizer_path = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)
+            self.tokenizer['tgt'] = Tokenizer.from_file(tokenizer_path)
         elif tokenizer == "unigram":
             self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
             self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)

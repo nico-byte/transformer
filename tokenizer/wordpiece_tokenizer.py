@@ -31,10 +31,11 @@ def build_tokenizer(name: str, run_id: str, dataset: List[str], vocab_size: int)
 
     if not os.path.exists(f"./models/{run_id}/tokenizer"):
         os.makedirs(f"./models/{run_id}/tokenizer")
-
-    tokenizer.save(f"./models/{run_id}/tokenizer/{name}.json")
     
-    return tokenizer
+    tokenizer_path = f"./models/{run_id}/tokenizer/{name}.json"
+    tokenizer.save(tokenizer_path)
+    
+    return tokenizer_path
 
 def batch_iterator(dataset, batch_size=1000):
         for i in range(0, len(dataset), batch_size):
