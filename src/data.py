@@ -44,7 +44,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         self.train_dataloader = DataLoader(self.train_dataset, 
                                            batch_size=self.batch_size, 
                                            collate_fn=self.collate_fn, 
-                                           shuffle=False, 
+                                           shuffle=self.shuffle, 
                                            num_workers=self.num_workers,
                                            pin_memory=self.pin_memory,
                                            drop_last=self.drop_last)
@@ -92,7 +92,6 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         augmented_dataset = [augmented_src_dataset[:-2], Tdataset[1][:-2]]
         
         originalsize_dataset = [list(i) for i in zip(*augmented_dataset)]
-        print(originalsize_dataset[-25:])
         
         return dataset + originalsize_dataset
 
@@ -138,11 +137,11 @@ class Multi30kDataLoader(BaseDataLoader):
         train_dataset = [list(i) for i in zip(*self.train_dataset)]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=3280)
-            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=3280)
+            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
+            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)
         elif tokenizer == "unigram":
-            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=3280)
-            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=3280)
+            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
+            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)
         else:
             raise KeyError
 

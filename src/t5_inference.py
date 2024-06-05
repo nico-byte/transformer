@@ -17,17 +17,18 @@ def t5_inference(tokenizer, model, sequence, device):
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-def mt_batch_inference(sequence, device, batch_size=1):
+def mt_batch_inference(sequences, device, batch_size=1):
     tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-de-en")
     model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-de-en").to(device)
     
     model.eval()
-    if not isinstance(sequence, list):
-        sequence = [sequence]
+    if not isinstance(sequences, list):
+        sequences = [sequences]
         
     outputs = []
-    for i in range(0, len(sequence), batch_size):
-        translations = model.generate(**tokenizer(sequence[i:i+batch_size], return_tensors="pt", padding=True).to(device))
+    for i in range(0, len(sequences), batch_size):
+        print("Augmenting batch", i)
+        translations = model.generate(**tokenizer(sequences[i:i+batch_size], return_tensors="pt", padding=True).to(device))
         outputs += tokenizer.batch_decode(translations, skip_special_tokens=True)
 
     return outputs

@@ -66,7 +66,7 @@ class Trainer():
         
         step_size = len(list(train_dataloader))
         
-        CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 3
+        CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 6
         
         self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
         
