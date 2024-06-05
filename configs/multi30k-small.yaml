@@ -10,10 +10,10 @@ transformer:
   num_decoder_layers: 3
   emb_size: 512
   dim_feedforward: 1024
-  dropout: 0.1
+  dropout: 0.15
 trainer:
-  learning_rate: 0.00009
-  num_epochs: 200
+  learning_rate: 0.0001
+  num_epochs: 100
   batch_size: 128
   tgt_batch_size: 128
-  warmup_epochs: 10
+  warmup_epochs: 33

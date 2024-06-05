@@ -50,7 +50,7 @@ class Seq2SeqTransformer(nn.Module):
         self.src_tok_emb = TokenEmbedding(model_config.src_vocab_size, model_config.emb_size)
         self.tgt_tok_emb = TokenEmbedding(model_config.tgt_vocab_size, model_config.emb_size)
         self.positional_encoding = PositionalEncoding(
-            model_config.emb_size, dropout=model_config.dropout, maxlen=5000)
+            model_config.emb_size, dropout=model_config.dropout, maxlen=256)
                                 
         for p in self.parameters():
             if p.dim() > 1:

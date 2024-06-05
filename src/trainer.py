@@ -1,11 +1,8 @@
-import os
 import sys
-import math
 from lion_pytorch import Lion
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import OneCycleLR, CyclicLR
-from cosine_annealing_warmup import CosineAnnealingWarmupRestarts
+from torch.optim.lr_scheduler import CyclicLR, OneCycleLR
 from nltk.translate.meteor_score import meteor_score
 from src.transformer import Seq2SeqTransformer
 from utils.config import TrainerConfig, SharedConfig
@@ -69,9 +66,10 @@ class Trainer():
         
         step_size = len(list(train_dataloader))
         
-        CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 6
+        CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 3
         
         self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
+        
         self.optim = torch.optim.AdamW(self.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
                                        amsgrad=True)
@@ -124,7 +122,7 @@ class Trainer():
                 loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
 
             self.scaler.scale(loss).backward()
-            
+                        
             if self.grad_accum and (batch_idx + 1) % self.accumulation_steps == 0:
                 for param in self.model.parameters():
                     param.grad /= self.accumulation_steps
@@ -188,10 +186,11 @@ class Trainer():
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
 
-                all_preds = [[token for token in self.tokenizer.decode(pred_tokens) \
-                    if token not in ["<bos>", "<eos>", "<pad>"]] for pred_tokens in predictions]
-                all_targets = [[token for token in self.tokenizer.decode(tgt_tokens) \
-                    if token not in ["<bos>", "<eos>", "<pad>"]] for tgt_tokens in targets]
+                all_preds = [[token for token in self.tokenizer.encode(self.tokenizer.decode(pred)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for pred in predictions]
+                all_targets = [[token for token in self.tokenizer.encode(self.tokenizer.decode(tgt)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for tgt in targets]
+                
+                self.logger.debug(all_preds)
+                self.logger.debug(all_targets)
 
                 meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
                     if len(preds) != 0]) / len(all_targets)

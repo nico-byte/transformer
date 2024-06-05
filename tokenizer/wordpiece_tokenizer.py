@@ -2,8 +2,6 @@ from typing import List
 from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, trainers
 from tokenizers.processors import TemplateProcessing
 import torch
-from torchtext.datasets import Multi30k
-from datasets import load_dataset
 import os
 
 # in case error occurs that it cant be imported by torch
@@ -35,7 +33,7 @@ def build_tokenizer(name: str, run_id: str, dataset: List[str], vocab_size: int)
     tokenizer_path = f"./models/{run_id}/tokenizer/{name}.json"
     tokenizer.save(tokenizer_path)
     
-    return tokenizer_path
+    return tokenizer
 
 def batch_iterator(dataset, batch_size=1000):
         for i in range(0, len(dataset), batch_size):

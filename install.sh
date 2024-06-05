@@ -1,5 +1,5 @@
 # Install python venv
-python3.10 -m venv .venv
+python3 -m venv .venv
 
 # Activate venv and install pip
 source .venv/bin/activate

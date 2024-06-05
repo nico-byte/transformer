@@ -1,7 +1,6 @@
 from typing import List
 from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, trainers
 from tokenizers.processors import TemplateProcessing
-from datasets import load_dataset
 import os
 
 
@@ -16,7 +15,7 @@ def build_tokenizer(name: str, run_id: str, dataset: List[str], vocab_size: int)
     )
 
     trainer = trainers.UnigramTrainer(
-        vocab_size=12288,
+        vocab_size=vocab_size,
         initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         special_tokens=["<unk>", "<bos>", "<eos>", "<pad>"],
     )
@@ -26,7 +25,8 @@ def build_tokenizer(name: str, run_id: str, dataset: List[str], vocab_size: int)
     if not os.path.exists(f"./models/{run_id}/tokenizer"):
         os.makedirs(f"./models/{run_id}/tokenizer")
 
-    tokenizer.save(f"./models/{run_id}/tokenizer/{name}.json")
+    tokenizer_path = f"./models/{run_id}/tokenizer/{name}.json"
+    tokenizer.save(tokenizer_path)
     
     return tokenizer
     

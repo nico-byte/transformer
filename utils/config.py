@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List
 from pydantic import BaseModel as PydanticBaseModel
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
