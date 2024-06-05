@@ -54,6 +54,7 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via
+    #   nltk
     #   typer
     #   uvicorn
 comm==0.2.2
@@ -172,6 +173,8 @@ jinja2==3.1.4
     #   jupyterlab-server
     #   nbconvert
     #   torch
+joblib==1.4.2
+    # via nltk
 json5==0.9.25
     # via jupyterlab-server
 jsonpointer==2.4
@@ -273,6 +276,8 @@ nest-asyncio==1.6.0
     # via ipykernel
 networkx==3.3
     # via torch
+nltk==3.8.1
+    # via -r requirements.in
 notebook==7.2.0
     # via jupyter
 notebook-shim==0.2.4
@@ -443,7 +448,9 @@ referencing==0.35.1
     #   jsonschema-specifications
     #   jupyter-events
 regex==2024.5.15
-    # via transformers
+    # via
+    #   nltk
+    #   transformers
 requests==2.32.3
     # via
     #   datasets
@@ -536,6 +543,7 @@ tqdm==4.66.4
     # via
     #   datasets
     #   huggingface-hub
+    #   nltk
     #   torchtext
     #   transformers
 traitlets==5.14.3

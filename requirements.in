@@ -16,3 +16,4 @@ sentencepiece==0.2.0
 gradio>=4.0.0
 jupyter
 lion-pytorch
+nltk
