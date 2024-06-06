@@ -4,6 +4,7 @@ import yaml
 import argparse
 import os
 import sys
+import nltk
 
 from src.data import IWSLT2017DataLoader, Multi30kDataLoader
 from utils.logger import get_logger
@@ -12,6 +13,7 @@ from src.trainer import Trainer, EarlyStopper
 from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
 from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
+nltk.download("wordnet", download_dir='./nltk_data')
 
 
 def parsing_args():
