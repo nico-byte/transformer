@@ -13,7 +13,7 @@ transformer:
   dropout: 0.1
 trainer:
   learning_rate: 0.0001
-  num_epochs: 50
+  num_epochs: 100
   batch_size: 128
   tgt_batch_size: 128
-  warmup_epochs: 10
+  warmup_epochs: 33

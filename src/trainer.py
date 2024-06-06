@@ -69,7 +69,7 @@ class Trainer():
         CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 6
         
         self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
-        
+        """
         self.optim = torch.optim.AdamW(self.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
                                        amsgrad=True)
@@ -90,7 +90,7 @@ class Trainer():
                                     cycle_momentum=False, 
                                     pct_start=0.3
                                     )                
-        """
+        
         self.device = device
         self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size
 

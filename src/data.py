@@ -62,12 +62,6 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
                                          num_workers=self.num_workers,
                                          pin_memory=self.pin_memory,
                                          drop_last=self.drop_last)
-        
-        for train_scr, train_tgt in self.train_dataloader:
-            self.logger.debug(f'Train batch: {train_scr.T[5]}, {train_tgt.T[5]}')
-            
-            self.logger.debug(f'Train src batch reference: {self.tokenizer['src'].encode(self.train_dataset[5][0]).ids}')
-            break
 
     def collate_fn(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
         src_batch, tgt_batch = [], []
@@ -106,8 +100,6 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.logger.info('Datasets have been loaded.')
         
         train_dataset = [list(i) for i in zip(*self.train_dataset)]
-        print(train_dataset[0][:5])
-        print(train_dataset[1][:5])
         
         if tokenizer == "wordpiece":
             self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=12280)
