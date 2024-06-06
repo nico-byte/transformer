@@ -91,7 +91,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
 
 class IWSLT2017DataLoader(BaseDataLoader):
-    def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="unigram"):
+    def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
         super().__init__(dl_config, tkn_config, shared_config)
         
         self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
