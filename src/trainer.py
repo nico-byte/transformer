@@ -1,13 +1,36 @@
 import sys
-from lion_pytorch import Lion
+
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import CyclicLR, OneCycleLR
 from nltk.translate.meteor_score import meteor_score
 from src.transformer import Seq2SeqTransformer
 from utils.config import TrainerConfig, SharedConfig
 from time import perf_counter
 from utils.logger import get_logger
+
+class InverseSquareRootLRScheduler:
+    def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps):
+        self.optimizer = optimizer
+        self.init_lr = init_lr
+        self.max_lr = max_lr
+        self.n_warmup_steps = n_warmup_steps
+        self.lr_step = (max_lr - init_lr) / n_warmup_steps
+        self.decay_factor = max_lr * n_warmup_steps**0.5
+        self.n_steps = 0
+
+    def step(self):
+        self.n_steps += 1
+                
+        if self.n_steps < self.n_warmup_steps:
+            self.lr = self.init_lr + self.n_steps * self.lr_step
+        else:
+            self.lr = self.decay_factor * self.n_steps**-0.5
+            
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.lr
+
+    def get_lr(self):
+        return self.optimizer.param_groups[0]['lr']
 
 
 class EarlyStopper:
@@ -64,32 +87,16 @@ class Trainer():
         
         self.run_id = run_id
         
-        step_size = len(list(train_dataloader))
-        
-        CYCLE_STEPSIZE = (step_size / (trainer_config.tgt_batch_size / trainer_config.batch_size) * trainer_config.num_epochs) // 6
-        
+                
         self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
-        """
         self.optim = torch.optim.AdamW(self.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
                                        amsgrad=True)
         
-        self.scheduler = CyclicLR(self.optim, 
-                                  base_lr=2e-6, 
-                                  max_lr=trainer_config.learning_rate, 
-                                  mode='triangular2', 
-                                  step_size_up=CYCLE_STEPSIZE/2, 
-                                  step_size_down=CYCLE_STEPSIZE/2, 
-                                  cycle_momentum=False)
-        """
-        self.optim = Lion(model.parameters(), lr=trainer_config.learning_rate/3, betas=(0.95, 0.98), weight_decay=1e-2)
-        self.scheduler = OneCycleLR(self.optim,
-                                    max_lr=trainer_config.learning_rate, 
-                                    total_steps=step_size*self.num_epochs, 
-                                    anneal_strategy="cos", 
-                                    cycle_momentum=False, 
-                                    pct_start=0.3
-                                    )                
+        self.scheduler = InverseSquareRootLRScheduler(optimizer=self.optim, 
+                                                      init_lr=2e-6, 
+                                                      max_lr=trainer_config.learning_rate, 
+                                                      n_warmup_steps=trainer_config.warmup_steps)
         
         self.device = device
         self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size

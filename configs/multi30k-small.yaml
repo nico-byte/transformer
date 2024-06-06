@@ -16,4 +16,4 @@ trainer:
   num_epochs: 100
   batch_size: 128
   tgt_batch_size: 128
-  warmup_epochs: 33
+  warmup_steps: 2000
