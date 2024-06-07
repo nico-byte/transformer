@@ -13,7 +13,7 @@ print(tokenizer.unk_token_id, tokenizer.pad_token_id, tokenizer.bos_token_id, to
 tokenizer.save_pretrained("./tokenizer.json")
 tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-de", cache_dir="./.transformers")
 
-tokenizer = MarianTokenizer("./tokenizer.json/source.spm", "./tokenizer.json/target.spm", "./tokenizer.json/vocab.json", "en", "de")
+tokenizer = MarianTokenizer.from_pretrained("./tokenizer.json/")
 
 src_texts = ["I am a small frog.", "Tom asked his teacher for advice."]
 tgt_texts = ["Ich bin ein kleiner Frosch.", "Tom bat seinen Lehrer um Rat."]  # optional

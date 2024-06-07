@@ -6,6 +6,7 @@ from src.t5_inference import mt_batch_inference
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from transformers import MarianTokenizer
 import torchtext
 torchtext.disable_torchtext_deprecation_warning()
 
@@ -66,16 +67,16 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
     def collate_fn(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
         src_batch, tgt_batch = [], []
         for src_sample, tgt_sample in batch:
-            encoded_src_sample = self.tokenizer.encode(src_sample)
-            tensor_src_sample = torch.tensor(encoded_src_sample.ids)
+            encoded_sample_pair = self.tokenizer(src_sample, text_target=tgt_sample)
+            tensor_src_sample = torch.tensor(encoded_sample_pair["input_ids"])
             src_batch.append(tensor_src_sample)
-
-            encoded_tgt_sample = self.tokenizer.encode(tgt_sample)
-            tensor_tgt_sample = torch.tensor(encoded_tgt_sample.ids)
+            
+            tensor_tgt_sample = torch.tensor(encoded_sample_pair["labels"])
             tgt_batch.append(tensor_tgt_sample)
 
-        src_batch = nn.utils.rnn.pad_sequence(src_batch, padding_value=self.special_symbols.index("<pad>"))
-        tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, padding_value=self.special_symbols.index("<pad>"))
+
+        src_batch = nn.utils.rnn.pad_sequence(src_batch, padding_value=self.tokenizer.pad_token_id)
+        tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, padding_value=self.tokenizer.pad_token_id)
 
         return src_batch, tgt_batch
     
@@ -112,16 +113,20 @@ class IWSLT2017DataLoader(BaseDataLoader):
             
         self.build_datasets()
         self.logger.info('Datasets have been loaded.')
-                
+        """        
         src_train_dataset = [x[0] for x in self.train_dataset]
         tgt_train_dataset = [x[1] for x in self.train_dataset]
-        
+
         if tokenizer == "wordpiece":
             self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
         elif tokenizer == "unigram":
             self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
         else:
             raise KeyError
+        """
+        
+        self.tokenizer = MarianTokenizer.from_pretrained(f"Helsinki-NLP/opus-mt-{self.src_language}-{self.tgt_language}", 
+                                                         cache_dir="./.transformers")
 
         super().build_dataloaders()
         self.logger.info('Dataloaders have been built.')
@@ -145,7 +150,7 @@ class Multi30kDataLoader(BaseDataLoader):
 
         self.build_datasets()
         self.logger.info('Datasets have benn loaded.')
-        
+        """
         src_train_dataset = [x[0] for x in self.train_dataset]
         tgt_train_dataset = [x[1] for x in self.train_dataset]
         
@@ -155,6 +160,10 @@ class Multi30kDataLoader(BaseDataLoader):
             self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=3280)
         else:
             raise KeyError
+        """
+        
+        self.tokenizer = MarianTokenizer.from_pretrained(f"Helsinki-NLP/opus-mt-{self.src_language}-{self.tgt_language}", 
+                                                         cache_dir="./.transformers")
 
         super().build_dataloaders()
         self.logger.info('Dataloaders have been built.')
