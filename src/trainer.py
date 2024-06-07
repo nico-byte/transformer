@@ -196,9 +196,6 @@ class Trainer():
                 all_preds = [[token for token in self.tokenizer.encode(self.tokenizer.decode(pred)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for pred in predictions]
                 all_targets = [[token for token in self.tokenizer.encode(self.tokenizer.decode(tgt)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for tgt in targets]
                 
-                self.logger.debug(all_preds)
-                self.logger.debug(all_targets)
-
                 meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
                     if len(preds) != 0]) / len(all_targets)
                 avg_meteor += meteor

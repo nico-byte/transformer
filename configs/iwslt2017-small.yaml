@@ -1,6 +1,6 @@
 dataloader:
   dataset: 'iwslt2017'
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
   pin_memory: True
   drop_last: False
@@ -14,6 +14,6 @@ transformer:
 trainer:
   learning_rate: 0.0001
   num_epochs: 100
-  batch_size: 64
+  batch_size: 128
   tgt_batch_size: 512
-  warmup_steps: 10000
+  warmup_steps: 15000
