@@ -1,73 +1,26 @@
-from utils.config import TokenizerConfig, DataLoaderConfig, SharedConfig
-from src.data import IWSLT2017DataLoader
-import yaml
-import os
+from transformers import MarianTokenizer
 
-with open("./configs/iwslt2017-small.yaml") as stream:
-    config = yaml.safe_load(stream)
-      
-tkn_conf = TokenizerConfig()
-      
-tokenizer = {
-    tkn_conf.src_language: tkn_conf.src_tokenizer,
-    tkn_conf.tgt_language: tkn_conf.tgt_tokenizer
-}
+tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-de", cache_dir="./.transformers")
+src_texts = ["I am a small frog.", "Tom asked his teacher for advice."]
+tgt_texts = ["Ich bin ein kleiner Frosch.", "Tom bat seinen Lehrer um Rat."]  # optional
+inputs = tokenizer(src_texts, text_target=tgt_texts)
 
+print(inputs)
+print(tokenizer.decode(inputs["input_ids"][0]))
+print(tokenizer.unk_token, tokenizer.pad_token, tokenizer.bos_token, tokenizer.eos_token)
+print(tokenizer.unk_token_id, tokenizer.pad_token_id, tokenizer.bos_token_id, tokenizer.eos_token_id)
 
-shared_conf = SharedConfig()
-dl_conf = DataLoaderConfig(**config['dataloader'])
+tokenizer.save_pretrained("./tokenizer.json")
+tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-en-de", cache_dir="./.transformers")
 
-iwslt_dataloader = IWSLT2017DataLoader(dl_conf, tokenizer, tkn_conf, shared_conf)
+tokenizer = MarianTokenizer("./tokenizer.json/source.spm", "./tokenizer.json/target.spm", "./tokenizer.json/vocab.json", "en", "de")
 
-print(iwslt_dataloader.train_dataset[0])
+src_texts = ["I am a small frog.", "Tom asked his teacher for advice."]
+tgt_texts = ["Ich bin ein kleiner Frosch.", "Tom bat seinen Lehrer um Rat."]  # optional
+inputs = tokenizer(src_texts, text_target=tgt_texts)
 
-plain_train_dataset = [x for sublist in [[x[0] for x in iwslt_dataloader.train_dataset], [x[1] for x in iwslt_dataloader.train_dataset]] for x in sublist]
-print(len(plain_train_dataset))
-print(plain_train_dataset[0])
+print(inputs)
+print(tokenizer.decode(inputs["input_ids"][0]))
+print(tokenizer.unk_token, tokenizer.pad_token, tokenizer.bos_token, tokenizer.eos_token)
+print(tokenizer.unk_token_id, tokenizer.pad_token_id, tokenizer.bos_token_id, tokenizer.eos_token_id)
 
-
-vocab_transform = iwslt_dataloader.vocab_transform
-            
-SRC_VOCAB_SIZE = len(vocab_transform[tkn_conf.src_language].index2word)
-TGT_VOCAB_SIZE = len(vocab_transform[tkn_conf.tgt_language].index2word)
-
-print(SRC_VOCAB_SIZE, TGT_VOCAB_SIZE)
-
-from tokenizers import Tokenizer
-from tokenizers.models import WordPiece
-tokenizer = Tokenizer(WordPiece(unk_token="<unk>"))
-
-from tokenizers.pre_tokenizers import Whitespace
-tokenizer.pre_tokenizer = Whitespace()
-
-from tokenizers.trainers import WordPieceTrainer
-trainer = WordPieceTrainer(vocab_size=16384, special_tokens=["<unk>", "<bos>", "<eos>", "<pad>"])
-tokenizer.train_from_iterator(plain_train_dataset, trainer)
-
-from tokenizers.processors import TemplateProcessing
-tokenizer.post_processor = TemplateProcessing(
-    single="<bos> $A <eos>",
-    special_tokens=[("<bos>", 1), ("<eos>", 2)]
-)
-
-from tokenizers import decoders
-tokenizer.decoder = decoders.WordPiece()
-
-if not os.path.exists('./tokenizers/'):
-    os.makedirs('./tokenizers/')
-    
-tokenizer.save("./tokenizers/cased-en-de.json")
-
-tokenizer = Tokenizer.from_file("./tokenizers/cased-en-de.json")
-
-src_input = tokenizer.encode("Hallo, ich bin ein Mensch, der sich nich traut auch mal auf den Tisch zu hauen da ich Angst habe den Tisch kaputt zu machen.")
-tgt_input = tokenizer.encode("Hello, I am a human being who does not like to smash on the table because i am anxious about the table being broken.")
-
-print(src_input.ids, src_input.tokens)
-print(tgt_input.ids, tgt_input.tokens)
-
-src_output = tokenizer.decode(src_input.ids)
-tgt_output = tokenizer.decode(tgt_input.ids)
-
-print(src_output, tgt_output)
-print(tokenizer.get_vocab_size())
