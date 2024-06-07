@@ -74,7 +74,7 @@ def main(args):
                             (256, 256), (256, 256), 
                             (dl_conf.batch_size, 256), (dl_conf.batch_size, 256)], depth=4)
 
-      early_stopper = EarlyStopper(warmup=trainer_conf.warmup_epochs, patience=7, min_delta=0)
+      early_stopper = EarlyStopper(warmup=17, patience=7, min_delta=0)
 
       trainer = Trainer(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
                         tokenizer['tgt'], early_stopper, trainer_conf, shared_conf, run_id, device)

@@ -79,15 +79,25 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
         return src_batch, tgt_batch
     
-    def augment_dataset(self, dataset: List[Tuple[str, str]]):
-        Tdataset = [list(i) for i in zip(*dataset)]
+    def backtranslate_dataset(self, whole_dataset: List[Tuple[str, str]], tgt_dataset: List[str]):
+        backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 256)
         
-        augmented_src_dataset = mt_batch_inference(Tdataset[1], "cuda", 256)
-        augmented_dataset = [augmented_src_dataset[:-2], Tdataset[1][:-2]]
+        backtrans_dataset_pairs = [[x, y] for x, y in zip(backtrans_dataset, tgt_dataset)]
+                
+        return whole_dataset + backtrans_dataset_pairs
+    
+    def clean_dataset(self, dataset: List[Tuple[str, str]]):
+        src_dataset = [x[0] for x in dataset]
+        tgt_dataset = [x[1] for x in dataset]
         
-        originalsize_dataset = [list(i) for i in zip(*augmented_dataset)]
-        
-        return dataset + originalsize_dataset
+        unique_pairs = {}
+        for x, y in zip(src_dataset, tgt_dataset):
+            if (x and y) and (x not in unique_pairs):
+                unique_pairs[x] = y
+    
+        clean_dataset = [[x, y] for x, y in unique_pairs.items()]
+    
+        return clean_dataset
 
 
 class IWSLT2017DataLoader(BaseDataLoader):
@@ -98,15 +108,16 @@ class IWSLT2017DataLoader(BaseDataLoader):
             
         self.build_datasets()
         self.logger.info('Datasets have been loaded.')
-        
-        train_dataset = [list(i) for i in zip(*self.train_dataset)]
+                
+        src_train_dataset = [x[0] for x in self.train_dataset]
+        tgt_train_dataset = [x[1] for x in self.train_dataset]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=12280)
-            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=12280)
+            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=12280)
+            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
         elif tokenizer == "unigram":
-            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=12280)
-            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=12280)
+            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=12280)
+            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
         else:
             raise KeyError
 
@@ -126,14 +137,15 @@ class Multi30kDataLoader(BaseDataLoader):
         self.build_datasets()
         self.logger.info('Datasets have benn loaded.')
         
-        train_dataset = [list(i) for i in zip(*self.train_dataset)]
+        src_train_dataset = [x[0] for x in self.train_dataset]
+        tgt_train_dataset = [x[1] for x in self.train_dataset]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
-            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)
+            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=1640)
+            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=1640)
         elif tokenizer == "unigram":
-            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=train_dataset[0], vocab_size=1640)
-            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=train_dataset[1], vocab_size=1640)
+            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=1640)
+            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=1640)
         else:
             raise KeyError
 
@@ -154,7 +166,8 @@ class Multi30kDataLoader(BaseDataLoader):
         self.val_dataset: List[str, str] = [self.train_dataset[i] for i in val_indices]
         self.train_dataset = [entry for i, entry in enumerate(self.train_dataset) if i not in val_indices]
         
-        self.train_dataset = self.augment_dataset(self.train_dataset)
+        tgt_train_dataset = [x[1] for x in self.train_dataset]
+        self.train_dataset = self.augment_dataset(self.train_dataset, tgt_train_dataset)
         
         self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
         self.logger.debug("Length train dataset: %f", len(self.train_dataset))
