@@ -117,8 +117,8 @@ class IWSLT2017DataLoader(BaseDataLoader):
         tgt_train_dataset = [x[1] for x in self.train_dataset]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=12280)
-            self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
+            self.tokenizer['src'], self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
+            # self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
         elif tokenizer == "unigram":
             self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=12280)
             self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
