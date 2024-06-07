@@ -29,8 +29,8 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     src_tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(tgt_dataset))
     tgt_tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(tgt_dataset))
 
-    if not os.path.exists(f'./{run_id}/tokenizer'):
-        os.makedirs(f'./{run_id}/tokenizer')
+    if not os.path.exists(f'./models/{run_id}/tokenizer'):
+        os.makedirs(f'./models/{run_id}/tokenizer')
 
     src_tokenizer.save(f"./models/{run_id}/tokenizer/{name}-src.json")
     tgt_tokenizer.save(f"./models/{run_id}/tokenizer/{name}-tgt.json")
