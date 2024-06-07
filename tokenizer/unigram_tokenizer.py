@@ -30,10 +30,10 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     # Train the tokenizer on the combined dataset
     tokenizer.train_from_iterator(batch_iterator(combined_dataset), trainer=trainer, length=len(combined_dataset))
 
-    if not os.path.exists(f'./models/{run_id}/tokenizer'):
-        os.makedirs(f'./models/{run_id}/tokenizer')
+    if not os.path.exists(f'./models/{run_id}/'):
+        os.makedirs(f'./models/{run_id}/')
 
-    tokenizer.save(f"./models/{run_id}/tokenizer/{name}.json")
+    tokenizer.save(f"./models/{run_id}/tokenizer-{name}.json")
     
     return tokenizer
     

@@ -55,7 +55,7 @@ def main(args):
             
       train_dataloader, test_dataloader, val_dataloader, tokenizer = dataloader.train_dataloader, dataloader.test_dataloader, dataloader.val_dataloader, dataloader.tokenizer
             
-      SRC_VOCAB_SIZE, TGT_VOCAB_SIZE = tokenizer.get_vocab_size()
+      SRC_VOCAB_SIZE, TGT_VOCAB_SIZE = tokenizer.get_vocab_size(), tokenizer.get_vocab_size()
             
 
       model_conf = TransformerConfig(

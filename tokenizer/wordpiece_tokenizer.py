@@ -19,7 +19,8 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
         special_tokens=[("<bos>", 1), ("<eos>", 2)]
     )
     trainer = trainers.WordPieceTrainer(
-        vocab_size=vocab_size,
+        vocab_size=8192,
+        min_frequency=2,
         initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         special_tokens=["<unk>", "<bos>", "<eos>", "<pad>"],
     )
@@ -31,12 +32,13 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     random.shuffle(combined_dataset)
 
     # Train the tokenizer on the combined dataset
-    tokenizer.train_from_iterator(batch_iterator(combined_dataset), trainer=trainer, length=len(combined_dataset))
+    tokenizer.train_from_iterator(batch_iterator(tgt_dataset), trainer=trainer, length=len(combined_dataset))
+    tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(combined_dataset))
 
-    if not os.path.exists(f'./models/{run_id}/tokenizer'):
-        os.makedirs(f'./models/{run_id}/tokenizer')
+    if not os.path.exists(f'./models/{run_id}/'):
+        os.makedirs(f'./models/{run_id}/')
 
-    tokenizer.save(f"./models/{run_id}/tokenizer/{name}.json")
+    tokenizer.save(f"./models/{run_id}/tokenizer-{name}.json")
     
     return tokenizer
 
