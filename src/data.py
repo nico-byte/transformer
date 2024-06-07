@@ -164,6 +164,8 @@ class Multi30kDataLoader(BaseDataLoader):
         
         self.tokenizer = MarianTokenizer.from_pretrained(f"Helsinki-NLP/opus-mt-{self.src_language}-{self.tgt_language}", 
                                                          cache_dir="./.transformers")
+        
+        self.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
 
         super().build_dataloaders()
         self.logger.info('Dataloaders have been built.')

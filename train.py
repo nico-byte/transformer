@@ -33,11 +33,11 @@ def main(args):
       
       logger = get_logger("Main")
       
-      if os.path.exists(f'./models/{run_id}'):
+      if os.path.exists(f'./models/{run_id}/tokenizer'):
             logger.error('Run ID already exists!')
             sys.exit(1)
       else:
-            os.makedirs(f'./models/{run_id}')
+            os.makedirs(f'./models/{run_id}/tokenizer')
       
       with open(path_to_config) as stream:
             config = yaml.safe_load(stream)
