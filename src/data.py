@@ -83,8 +83,11 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 256)
         
         backtrans_dataset_pairs = [[x, y] for x, y in zip(backtrans_dataset, tgt_dataset)]
+        
+        new_dataset = whole_dataset + backtrans_dataset_pairs
+        clean_dataset = self.clean_dataset(new_dataset)
                 
-        return whole_dataset + backtrans_dataset_pairs
+        return clean_dataset
     
     def clean_dataset(self, dataset: List[Tuple[str, str]]):
         src_dataset = [x[0] for x in dataset]
@@ -96,6 +99,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
                 unique_pairs[x] = y
     
         clean_dataset = [[x, y] for x, y in unique_pairs.items()]
+        self.logger.info(f'Cleaned dataset: {len(clean_dataset)}')
     
         return clean_dataset
 
