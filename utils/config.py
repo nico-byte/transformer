@@ -43,4 +43,4 @@ class TrainerConfig(PydanticBaseModel):
     num_epochs: int
     batch_size: int
     tgt_batch_size: int = None
-    warmup_epochs: int = None
+    warmup_steps: int = None
