@@ -10,7 +10,7 @@ class BaseModel(PydanticBaseModel):
 
 
 class SharedConfig(BaseModel):
-    special_symbols: List[str] = ['<unk>', '<bos>', '<eos>', '<pad>']
+    special_symbols: List[str] = ['<s>', '<unk>']
     run_id: str = None
 
 

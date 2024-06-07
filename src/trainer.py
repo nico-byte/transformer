@@ -88,7 +88,7 @@ class Trainer():
         self.run_id = run_id
         
                 
-        self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
+        self.criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
         self.optim = torch.optim.AdamW(self.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
                                        amsgrad=True)
@@ -193,8 +193,8 @@ class Trainer():
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
 
-                all_preds = [[token for token in self.tokenizer.encode(self.tokenizer.decode(pred)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for pred in predictions]
-                all_targets = [[token for token in self.tokenizer.encode(self.tokenizer.decode(tgt)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for tgt in targets]
+                all_preds = [[token for token in self.tokenizer.encode(self.tokenizer.decode(pred)).tokens if token not in ["</s>", "<pad>"]] for pred in predictions]
+                all_targets = [[token for token in self.tokenizer.encode(self.tokenizer.decode(tgt)).tokens if token not in ["</s>", "<pad>"]] for tgt in targets]
                 
                 meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
                     if len(preds) != 0]) / len(all_targets)
