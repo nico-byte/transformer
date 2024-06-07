@@ -6,10 +6,10 @@ dataloader:
   drop_last: False
   shuffle: True
 transformer:
-  num_encoder_layers: 4
-  num_decoder_layers: 4
-  emb_size: 512
-  dim_feedforward: 1024
+  num_encoder_layers: 5
+  num_decoder_layers: 5
+  emb_size: 1024
+  dim_feedforward: 2048
   dropout: 0.1
 trainer:
   learning_rate: 0.0001

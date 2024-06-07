@@ -13,7 +13,9 @@ from src.trainer import Trainer, EarlyStopper
 from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
 from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
-nltk.download("wordnet", download_dir='./.nltk_data')
+
+if not os.path.exists('./.nltk_data'):
+      nltk.download("wordnet", download_dir='./.nltk_data')
 
 
 def parsing_args():
