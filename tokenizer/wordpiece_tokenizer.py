@@ -33,7 +33,7 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
 
     # Train the tokenizer on the combined dataset
     # tokenizer.train_from_iterator(batch_iterator(tgt_dataset), trainer=trainer, length=len(combined_dataset))
-    tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(combined_dataset))
+    tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(src_dataset))
 
     if not os.path.exists(f'./models/{run_id}/'):
         os.makedirs(f'./models/{run_id}/')
