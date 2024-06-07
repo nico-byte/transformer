@@ -171,7 +171,7 @@ class Multi30kDataLoader(BaseDataLoader):
         self.train_dataset = [entry for i, entry in enumerate(self.train_dataset) if i not in val_indices]
         
         tgt_train_dataset = [x[1] for x in self.train_dataset]
-        self.train_dataset = self.augment_dataset(self.train_dataset, tgt_train_dataset)
+        self.train_dataset = self.backtranslate_dataset(self.train_dataset, tgt_train_dataset)
         
         self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
         self.logger.debug("Length train dataset: %f", len(self.train_dataset))
