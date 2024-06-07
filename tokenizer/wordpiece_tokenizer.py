@@ -26,10 +26,10 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     )
 
     # Combine the source and target datasets
-    combined_dataset = src_dataset + tgt_dataset
+    # combined_dataset = src_dataset + tgt_dataset
 
     # Shuffle the combined dataset to ensure a balanced representation
-    random.shuffle(combined_dataset)
+    # random.shuffle(combined_dataset)
 
     # Train the tokenizer on the combined dataset
     # tokenizer.train_from_iterator(batch_iterator(tgt_dataset), trainer=trainer, length=len(combined_dataset))

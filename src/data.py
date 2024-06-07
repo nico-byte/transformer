@@ -117,9 +117,9 @@ class IWSLT2017DataLoader(BaseDataLoader):
         tgt_train_dataset = [x[1] for x in self.train_dataset]
         
         if tokenizer == "wordpiece":
-            self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=24560)
+            self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
         elif tokenizer == "unigram":
-            self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=24560)
+            self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
         else:
             raise KeyError
 
