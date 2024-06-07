@@ -127,9 +127,9 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.logger.info('Dataloaders have been built.')
         
     def build_datasets(self):
-        self.train_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["train"]['translation']]
-        self.test_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["test"]['translation']]
-        self.val_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["validation"]['translation']]
+        self.train_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["train"]['translation']]
+        self.test_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["test"]['translation']]
+        self.val_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["validation"]['translation']]
         
         self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
         self.logger.debug("Length train dataset: %f", len(self.train_dataset))

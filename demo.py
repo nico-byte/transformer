@@ -15,7 +15,7 @@ class ModelConfig:
     def set_t5_model(self):
         try:
             tokenizer, model = get_base_model(device)
-            self.model, self.tokenizer, self.tokenizer = model, tokenizer, None
+            self.model, self.tokenizer, self.custom_tokenizer = model, tokenizer, None
             return f"T5 Model loaded: {self.model}, {self.tokenizer}"
         except RuntimeError as e:
             print(e)
