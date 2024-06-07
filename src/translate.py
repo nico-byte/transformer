@@ -1,34 +1,20 @@
 import torch
+import tokenizers
 from src.processor import Processor
-from utils.config import TokenizerConfig, SharedConfig
-from src.data import create_text_transform, load_vocab
+from utils.config import SharedConfig
 
 
-def translate_sequence_from_checkpoint(checkpoint, vocab, sequence, device):
+def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
     checkpoint = torch.jit.load(checkpoint, map_location=device)
-    src_lang = 'en'
-    tgt_lang = 'de'
-      
-    tkn_conf = TokenizerConfig()
-    
-    tokenizer = {
-            tkn_conf.src_language: tkn_conf.src_tokenizer,
-            tkn_conf.tgt_language: tkn_conf.tgt_tokenizer
-      }
-
 
     shared_config = SharedConfig()
     
-    token_transform = tokenizer
-    vocab_transform = load_vocab(vocab)
-    text_transform = create_text_transform(src_lang, tgt_lang, token_transform, vocab_transform)
+    tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
     special_symbols = shared_config.special_symbols
         
     translator = Processor(checkpoint, device, special_symbols)
     
-    output = translator.translate(sequence, src_language=src_lang, 
-          tgt_language=tgt_lang, text_transform=text_transform, vocab_transform=vocab_transform, 
-          special_symbols=special_symbols)
+    output = translator.translate(sequence, tokenizer, special_symbols=special_symbols)
     
     return output    
     

@@ -7,28 +7,28 @@ from src.t5_inference import get_base_model, t5_inference
 device = check_device('cpu')
 
 class ModelConfig:
-    def __init__(self, model=None, vocab=None, tokenizer=None):
+    def __init__(self, model=None, custom_tokenizer=None, tokenizer=None):
         self.model = model
-        self.vocab = vocab
+        self.custom_tokenizer = custom_tokenizer
         self.tokenizer = tokenizer
         
     def set_t5_model(self):
         try:
             tokenizer, model = get_base_model(device)
-            self.model, self.tokenizer, self.vocab = model, tokenizer, None
+            self.model, self.tokenizer, self.tokenizer = model, tokenizer, None
             return f"T5 Model loaded: {self.model}, {self.tokenizer}"
         except RuntimeError as e:
             print(e)
             return "Something went wrong!"
         
-    def set_custom_model(self, model, vocab):
-        if not isinstance(model, gr.utils.NamedString) or not isinstance(vocab, gr.utils.NamedString):
-            return f"Please provide a model and vocab, {model}; {vocab}"
+    def set_custom_model(self, model, tokenizer):
+        if not isinstance(model, gr.utils.NamedString) or not isinstance(tokenizer, gr.utils.NamedString):
+            return f"Please provide a model and tokenizer, {model}; {tokenizer}"
         model = self.process_file(model)
-        vocab = self.process_file(vocab)
+        tokenizer = self.process_file(tokenizer)
         try:
-            self.model, self.vocab, self.tokenizer = model, vocab, None
-            return f"Custom Model loaded: {self.model}, {self.vocab}"
+            self.model, self.custom_tokenizer, self.tokenizer = model, tokenizer, None
+            return f"Custom Model loaded: {self.model}, {self.tokenizer}"
         except RuntimeError as e:
             return e
         
@@ -50,13 +50,13 @@ class ModelConfig:
         
     def _translate_custom(self, sequence):
         try:
-            output = translate_sequence_from_checkpoint(self.model, self.vocab, sequence, device)
+            output = translate_sequence_from_checkpoint(self.model, self.custom_tokenizer, sequence, device)
             return output
         except RuntimeError as e:
             return e
         
     def translate(self, sequence):
-        if self.vocab is not None:
+        if self.custom_tokenizer is not None:
             return self._translate_custom(sequence)
         elif self.tokenizer is not None:
             return self._translate_t5(sequence)
@@ -71,7 +71,7 @@ with gr.Blocks(theme=theme) as demo:
     header = gr.Markdown("# KI in den Life Sciences: Machine Translation Demo")
     line1 = gr.Markdown("by [Nico Fuchs](https://github.com/nico-byte) and [Matthias Laton](https://github.com/20DragonSlayer01)")
     line2 = gr.Markdown("---")
-    line3 = gr.Markdown("### This demo uses a T5 model to translate English to German. You can also load your own model and vocab.")
+    line3 = gr.Markdown("### This demo uses a T5 model to translate English to German. You can also load your own model and tokenizer.")
     
     with gr.Tab(label="T5 Model"):
         with gr.Column():
@@ -102,11 +102,11 @@ with gr.Blocks(theme=theme) as demo:
             with gr.Group():
                 with gr.Row():
                     model = gr.File(label="Model", file_types=['.pt'])
-                    vocab = gr.File(label="Vocab", file_types=['.pth'])
+                    tokenizer = gr.File(label="Tokenizer", file_types=['.json'])
 
                 with gr.Row():
                     load_custom_btn = gr.Button("Load custom model")
-                    load_custom_btn.click(fn=model_config.set_custom_model, inputs=[model, vocab], outputs=[debug_log])
+                    load_custom_btn.click(fn=model_config.set_custom_model, inputs=[model, tokenizer], outputs=[debug_log])
 
             with gr.Group():
                 with gr.Row():

@@ -47,14 +47,13 @@ class Processor():
                 break
         return ys
 
-    def translate(self, src_sentence: str, src_language: str, tgt_language: str, 
-                  tokenizer, special_symbols) -> str:
+    def translate(self, src_sentence: str, tokenizer, special_symbols) -> str:
         self.model.eval()
-        src = torch.tensor(tokenizer['src'].encode(src_sentence).ids).view(-1, 1)
+        src = torch.tensor(tokenizer.encode(src_sentence).ids).view(-1, 1)
         num_tokens = src.shape[0]
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         with torch.no_grad():
             tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
                                             start_symbol=special_symbols.index('<bos>'), 
                                             special_symbols=special_symbols).flatten()
-        return tokenizer['tgt'].decode(list(tgt_tokens.cpu().numpy()))
+        return tokenizer.decode(list(tgt_tokens.cpu().numpy()))

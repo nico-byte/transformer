@@ -55,8 +55,7 @@ def main(args):
             
       train_dataloader, test_dataloader, val_dataloader, tokenizer = dataloader.train_dataloader, dataloader.test_dataloader, dataloader.val_dataloader, dataloader.tokenizer
             
-      SRC_VOCAB_SIZE = tokenizer['src'].get_vocab_size()
-      TGT_VOCAB_SIZE = tokenizer['tgt'].get_vocab_size()
+      SRC_VOCAB_SIZE, TGT_VOCAB_SIZE = tokenizer.get_vocab_size()
             
 
       model_conf = TransformerConfig(
@@ -79,15 +78,13 @@ def main(args):
       early_stopper = EarlyStopper(warmup=17, patience=7, min_delta=0)
 
       trainer = Trainer(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
-                        tokenizer['tgt'], early_stopper, trainer_conf, shared_conf, run_id, device)
+                        tokenizer, early_stopper, trainer_conf, shared_conf, run_id, device)
 
       trainer.train()
       print(f'\nEvaluation: meteor_score - {trainer.evaluate()}')
 
       TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
-      output = translator.translate(TEST_SEQUENCE, src_language=tkn_conf.src_language, 
-            tgt_language=tkn_conf.tgt_language, tokenizer=tokenizer, 
-            special_symbols=shared_conf.special_symbols)
+      output = translator.translate(TEST_SEQUENCE, tokenizer=tokenizer, special_symbols=shared_conf.special_symbols)
       
       print(f'Input: {TEST_SEQUENCE}, Output: {output}')
       

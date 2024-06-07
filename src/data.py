@@ -26,7 +26,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         self.pin_memory: bool = dl_config.pin_memory
         self.drop_last: bool = dl_config.drop_last
         self.shuffle: bool = dl_config.shuffle
-        self.tokenizer: Dict[str] = {}
+        self.tokenizer = None
         self.src_language: str = tkn_config.src_language
         self.tgt_language: str = tkn_config.tgt_language
         self.special_symbols: List[str] = shared_config.special_symbols
@@ -66,11 +66,11 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
     def collate_fn(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
         src_batch, tgt_batch = [], []
         for src_sample, tgt_sample in batch:
-            encoded_src_sample = self.tokenizer['src'].encode(src_sample)
+            encoded_src_sample = self.tokenizer.encode(src_sample)
             tensor_src_sample = torch.tensor(encoded_src_sample.ids)
             src_batch.append(tensor_src_sample)
 
-            encoded_tgt_sample = self.tokenizer['tgt'].encode(tgt_sample)
+            encoded_tgt_sample = self.tokenizer.encode(tgt_sample)
             tensor_tgt_sample = torch.tensor(encoded_tgt_sample.ids)
             tgt_batch.append(tensor_tgt_sample)
 
@@ -117,11 +117,9 @@ class IWSLT2017DataLoader(BaseDataLoader):
         tgt_train_dataset = [x[1] for x in self.train_dataset]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'], self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
-            # self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
+            self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=24560)
         elif tokenizer == "unigram":
-            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="iwslt-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=12280)
-            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="iwslt-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=12280)
+            self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=24560)
         else:
             raise KeyError
 
@@ -132,6 +130,13 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.train_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["train"]['translation']]
         self.test_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["test"]['translation']]
         self.val_dataset: List[str, str] = [(d["de"], d["en"]) for d in self.dataset["validation"]['translation']]
+        
+        self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
+        self.logger.debug("Length train dataset: %f", len(self.train_dataset))
+        self.logger.debug("First Entry test dataset: %s", list(self.test_dataset[0]))
+        self.logger.debug("Length test dataset: %f", len(self.test_dataset))
+        self.logger.debug("First Entry val dataset: %s", list(self.val_dataset[0]))
+        self.logger.debug("Length val dataset: %f", len(self.val_dataset))
 
 
 class Multi30kDataLoader(BaseDataLoader):
@@ -145,11 +150,9 @@ class Multi30kDataLoader(BaseDataLoader):
         tgt_train_dataset = [x[1] for x in self.train_dataset]
         
         if tokenizer == "wordpiece":
-            self.tokenizer['src'], self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=1640)
-            # self.tokenizer['tgt'] = wordpiece_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=1640)
+            self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=3280)
         elif tokenizer == "unigram":
-            self.tokenizer['src'] = unigram_tokenizer.build_tokenizer(name="multi30k-src", run_id=shared_config.run_id, dataset=src_train_dataset, vocab_size=1640)
-            self.tokenizer['tgt'] = unigram_tokenizer.build_tokenizer(name="multi30k-tgt", run_id=shared_config.run_id, dataset=tgt_train_dataset, vocab_size=1640)
+            self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=3280)
         else:
             raise KeyError
 
@@ -170,8 +173,8 @@ class Multi30kDataLoader(BaseDataLoader):
         self.val_dataset: List[str, str] = [self.train_dataset[i] for i in val_indices]
         self.train_dataset = [entry for i, entry in enumerate(self.train_dataset) if i not in val_indices]
         
-        # tgt_train_dataset = [x[1] for x in self.train_dataset]
-        # self.train_dataset = self.backtranslate_dataset(self.train_dataset, tgt_train_dataset)
+        tgt_train_dataset = [x[1] for x in self.train_dataset]
+        self.train_dataset = self.backtranslate_dataset(self.train_dataset, tgt_train_dataset)
         
         self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
         self.logger.debug("Length train dataset: %f", len(self.train_dataset))
