@@ -252,7 +252,7 @@ class Trainer():
             'epoch': self.current_epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optim.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
+            # 'scheduler_state_dict': self.scheduler.state_dict(),
             }, model_filepath)
         
         self.logger.info(f'Saved model checkpoint to {model_filepath}')
