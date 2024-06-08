@@ -2,7 +2,7 @@ import sys
 
 import torch
 import torch.nn as nn
-from nltk.translate.meteor_score import meteor_score
+from evaluate import load as load_metric
 from src.transformer import Seq2SeqTransformer
 from utils.config import TrainerConfig, SharedConfig
 from time import perf_counter
@@ -176,7 +176,11 @@ class Trainer():
 
     def evaluate(self) -> float:
         self.model.eval()
-        avg_meteor = 0
+        avg_bleu = 0
+        avg_rouge = 0
+        bleu = load_metric("bleu")
+        rouge = load_metric("rouge")
+        
         with torch.no_grad():
             for src, tgt in self.dataloaders[-1]:
                 tgt = tgt.type(torch.LongTensor)
@@ -193,14 +197,19 @@ class Trainer():
                 predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
 
-                all_preds = [[token for token in self.tokenizer.encode(self.tokenizer.decode(pred)).tokens if token not in ["</s>", "<pad>"]] for pred in predictions]
-                all_targets = [[token for token in self.tokenizer.encode(self.tokenizer.decode(tgt)).tokens if token not in ["</s>", "<pad>"]] for tgt in targets]
+                all_preds = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in predictions]
+                all_targets = [[self.tokenizer.decode(tgt, skip_special_tokens=True)] for tgt in targets]
+                                
+                bleu_score = sum(bleu.compute(predictions=[pred], references=[target]) for pred, target in zip(all_preds, all_targets))
+                avg_bleu += bleu_score['bleu']/len(all_preds)
                 
-                meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
-                    if len(preds) != 0]) / len(all_targets)
-                avg_meteor += meteor
-
-        return avg_meteor / len(list(self.dataloaders[-1]))
+                rouge_score = rouge.compute(predictions=all_preds, references=all_targets)
+                avg_rouge += rouge_score['rougeLsum']
+                
+        avg_bleu /= len(list(self.dataloaders[-1]))
+        avg_rouge /= len(list(self.dataloaders[-1]))
+        
+        return avg_bleu, avg_rouge
 
     def train(self):
         try:

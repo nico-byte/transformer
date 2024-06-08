@@ -4,7 +4,7 @@ import yaml
 import argparse
 import os
 import sys
-import nltk
+# import nltk
 
 from src.data import IWSLT2017DataLoader, Multi30kDataLoader
 from utils.logger import get_logger
@@ -14,8 +14,8 @@ from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig, Transf
 from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
 
-if not os.path.exists('./.nltk_data'):
-      nltk.download("wordnet", download_dir='./.nltk_data')
+# if not os.path.exists('./.nltk_data'):
+#       nltk.download("wordnet", download_dir='./.nltk')
 
 
 def parsing_args():
@@ -69,7 +69,8 @@ def main(args):
 
       trainer_conf = TrainerConfig(
             **config['trainer'],
-            device=device
+            device=device, 
+            batch_size=dl_conf.batch_size
       )
       summary(transformer, [(256, dl_conf.batch_size), (256, dl_conf.batch_size), 
                             (256, 256), (256, 256), 
@@ -81,7 +82,8 @@ def main(args):
                         tokenizer, early_stopper, trainer_conf, shared_conf, run_id, device)
 
       trainer.train()
-      print(f'\nEvaluation: meteor_score - {trainer.evaluate()}')
+      bleu, rouge = trainer.evaluate()
+      print(f'\nEvaluation: bleu_score - {bleu}, rouge_score - {rouge}')
 
       TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
       output = translator.translate(TEST_SEQUENCE, tokenizer=tokenizer, special_symbols=shared_conf.special_symbols)

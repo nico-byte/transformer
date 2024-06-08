@@ -2,7 +2,7 @@ from typing import List, Tuple
 from utils.logger import get_logger
 import abc
 import random
-from src.t5_inference import mt_batch_inference
+from src.pretrained_inference import mt_batch_inference
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -79,7 +79,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         return src_batch, tgt_batch
     
     def backtranslate_dataset(self, whole_dataset: List[Tuple[str, str]], tgt_dataset: List[str]):
-        backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 256)
+        backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 512, self.logger)
         
         backtrans_dataset_pairs = [[x, y] for x, y in zip(backtrans_dataset, tgt_dataset)]
         
@@ -114,7 +114,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         
         random.shuffle(whole_dataset)
 
-        self.tokenizer = tokenizer.train_new_from_iterator(self.batch_iterator(whole_dataset), 6560, len(whole_dataset))
+        self.tokenizer = tokenizer.train_new_from_iterator(self.batch_iterator(whole_dataset), 6480, len(whole_dataset))
         
     @staticmethod
     def batch_iterator(dataset, batch_size=1000):

@@ -25,7 +25,7 @@ class Processor():
         tgt_padding_mask = (tgt == pad_id).transpose(0, 1)
         return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
     
-    def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int, special_symbols) -> Tensor:
+    def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int, eos_token_id: int) -> Tensor:
         src = src.to(self.device)
         src_mask = src_mask.to(self.device)
 
@@ -43,16 +43,17 @@ class Processor():
 
             ys = torch.cat([ys,
                         torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0)
-            if next_word == special_symbols.index('</s>'):
+            if next_word == eos_token_id:
                 break
         return ys
 
     def translate(self, src_sentence: str, tokenizer, special_symbols) -> str:
         self.model.eval()
-        src = torch.tensor(tokenizer.encode(src_sentence).ids).view(-1, 1)
+        encoded_src = tokenizer.encode(src_sentence)
+        src = torch.tensor(encoded_src).view(-1, 1)
         num_tokens = src.shape[0]
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         with torch.no_grad():
             tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
-                                            special_symbols=special_symbols).flatten()
-        return tokenizer.decode(list(tgt_tokens.cpu().numpy()))
+                                            eos_token_id=tokenizer.eos_token_id).flatten()
+        return tokenizer.decode(list(tgt_tokens.cpu().numpy()), skip_special_tokens=True)

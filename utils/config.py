@@ -10,7 +10,7 @@ class BaseModel(PydanticBaseModel):
 
 
 class SharedConfig(BaseModel):
-    special_symbols: List[str] = ['<s>', '<unk>']
+    special_symbols: List[str] = ['<s>', '<unk>', "</s>"]
     run_id: str = None
 
 
@@ -29,18 +29,18 @@ class DataLoaderConfig(PydanticBaseModel):
     
 
 class TransformerConfig(PydanticBaseModel):
-    num_encoder_layers: int = 4
-    num_decoder_layers: int = 4
-    emb_size: int = 512
-    nhead: int = 8
+    num_encoder_layers: int
+    num_decoder_layers: int
+    emb_size: int
+    nhead: int
     src_vocab_size: int
     tgt_vocab_size: int
-    dim_feedforward: int = 512
-    dropout: float = 0.1
+    dim_feedforward: int 
+    dropout: float
 
 class TrainerConfig(PydanticBaseModel):
     learning_rate: float
     num_epochs: int
     batch_size: int
-    tgt_batch_size: int = None
-    warmup_steps: int = None
+    tgt_batch_size: int
+    warmup_steps: int
