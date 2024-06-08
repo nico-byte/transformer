@@ -6,15 +6,13 @@ from src.t5_inference import mt_batch_inference
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from transformers import MarianTokenizer
+from transformers import AutoTokenizer
 import torchtext
 torchtext.disable_torchtext_deprecation_warning()
 
 from torchtext.datasets import Multi30k
 from datasets import load_dataset
 from utils.config import DataLoaderConfig, TokenizerConfig, SharedConfig
-from tokenizer import wordpiece_tokenizer
-from tokenizer import unigram_tokenizer
 
 # in case error occurs that it cant be imported by torch
 torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_utils.dill_available()
@@ -103,6 +101,25 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         self.logger.info(f'Cleaned dataset: {len(clean_dataset)}')
     
         return clean_dataset
+    
+    def train_tokenizer(self):
+        tokenizer = AutoTokenizer.from_pretrained("google-t5/t5-base", cache_dir="./.transformers")
+        
+        dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
+        dataset = [(d[self.src_language], d[self.tgt_language]) for d in dataset["train"]['translation']]
+
+        src_dataset = [x[0] for x in dataset]
+        tgt_dataset = [x[1] for x in dataset]
+        whole_dataset = src_dataset + tgt_dataset
+        
+        random.shuffle(whole_dataset)
+
+        self.tokenizer = tokenizer.train_new_from_iterator(self.batch_iterator(whole_dataset), 6560, len(whole_dataset))
+        
+    @staticmethod
+    def batch_iterator(dataset, batch_size=1000):
+        for i in range(0, len(dataset), batch_size):
+            yield dataset[i : i + batch_size]
 
 
 class IWSLT2017DataLoader(BaseDataLoader):
@@ -113,20 +130,10 @@ class IWSLT2017DataLoader(BaseDataLoader):
             
         self.build_datasets()
         self.logger.info('Datasets have been loaded.')
-        """        
-        src_train_dataset = [x[0] for x in self.train_dataset]
-        tgt_train_dataset = [x[1] for x in self.train_dataset]
-
-        if tokenizer == "wordpiece":
-            self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
-        elif tokenizer == "unigram":
-            self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=12280)
-        else:
-            raise KeyError
-        """
         
-        self.tokenizer = MarianTokenizer.from_pretrained(f"Helsinki-NLP/opus-mt-{self.src_language}-{self.tgt_language}", 
-                                                         cache_dir="./.transformers")
+        self.train_tokenizer()
+        
+        self.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
 
         super().build_dataloaders()
         self.logger.info('Dataloaders have been built.')
@@ -150,20 +157,8 @@ class Multi30kDataLoader(BaseDataLoader):
 
         self.build_datasets()
         self.logger.info('Datasets have benn loaded.')
-        """
-        src_train_dataset = [x[0] for x in self.train_dataset]
-        tgt_train_dataset = [x[1] for x in self.train_dataset]
         
-        if tokenizer == "wordpiece":
-            self.tokenizer = wordpiece_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=3280)
-        elif tokenizer == "unigram":
-            self.tokenizer = unigram_tokenizer.build_tokenizer(name="cased", run_id=shared_config.run_id, src_dataset=src_train_dataset, tgt_dataset=tgt_train_dataset, vocab_size=3280)
-        else:
-            raise KeyError
-        """
-        
-        self.tokenizer = MarianTokenizer.from_pretrained(f"Helsinki-NLP/opus-mt-{self.src_language}-{self.tgt_language}", 
-                                                         cache_dir="./.transformers")
+        self.train_tokenizer()
         
         self.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
 
@@ -184,8 +179,8 @@ class Multi30kDataLoader(BaseDataLoader):
         self.val_dataset: List[str, str] = [self.train_dataset[i] for i in val_indices]
         self.train_dataset = [entry for i, entry in enumerate(self.train_dataset) if i not in val_indices]
         
-        # tgt_train_dataset = [x[1] for x in self.train_dataset]
-        # self.train_dataset = self.backtranslate_dataset(self.train_dataset, tgt_train_dataset)
+        tgt_train_dataset = [x[1] for x in self.train_dataset]
+        self.train_dataset = self.backtranslate_dataset(self.train_dataset, tgt_train_dataset)
         
         self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
         self.logger.debug("Length train dataset: %f", len(self.train_dataset))
