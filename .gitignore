@@ -1,6 +1,6 @@
 __pycache__
 .data
-.nltk
+.nltk_data
 .ruff_cache
 results
 models

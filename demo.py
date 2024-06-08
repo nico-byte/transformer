@@ -34,12 +34,7 @@ class ModelConfig:
         
     @staticmethod
     def process_file(fileobj):
-        if not os.path.exists('./.temps'):
-            os.makedirs('./.temps')
-        
-        path = "./.temps/" + os.path.basename(fileobj)
-        shutil.copyfile(fileobj.name, path)
-        return path
+        return fileobj.name
         
     def _translate_t5(self, sequence):
         try:
@@ -75,8 +70,8 @@ with gr.Blocks(theme=theme) as demo:
     
     with gr.Tab(label="T5 Model"):
         with gr.Column():
-            with gr.Accordion("Debug Log", open=False):
-                 debug_log = gr.TextArea(label="Debug Log", lines=7, max_lines=12)
+            with gr.Accordion("Debug Log", open=True):
+                 debug_log = gr.TextArea(label="", lines=7, max_lines=12)
 
             with gr.Group():
                 load_t5_btn = gr.Button("Load T5 model")
@@ -93,16 +88,25 @@ with gr.Blocks(theme=theme) as demo:
                     trns_btn = gr.Button("Translate")
                     trns_btn.click(fn=model_config.translate, inputs=[seed], outputs=[output])
                     clear_btn = gr.ClearButton(components=[seed, output, debug_log])
+                    
+        with gr.Accordion(label="Examples", open=True):
+            gr.Examples(examples=[
+                "The quick brown fox jumps over the lazy dog.", 
+                "She sells seashells by the seashore.", 
+                "Technology is rapidly changing the way we live and work.", 
+                "Can you recommend a good restaurant nearby?", 
+                "Despite the rain, they decided to go for a hike."], 
+                        inputs=[seed], label="English Sequences")
 
     with gr.Tab(label="Custom Model"):
         with gr.Column():
-            with gr.Accordion("Debug Log", open=False):
-                debug_log = gr.TextArea(label="Debug Log", lines=7, max_lines=12)
+            with gr.Accordion("Debug Log", open=True):
+                debug_log = gr.TextArea(label="", lines=7, max_lines=12)
 
             with gr.Group():
                 with gr.Row():
-                    model = gr.File(label="Model", file_types=['.pt'])
-                    tokenizer = gr.File(label="Tokenizer", file_types=['.json'])
+                    model = gr.File(label="Model", file_types=['.pt'], min_width=200)
+                    tokenizer = gr.File(label="Tokenizer", file_types=['.json'], min_width=200)
 
                 with gr.Row():
                     load_custom_btn = gr.Button("Load custom model")
@@ -110,14 +114,31 @@ with gr.Blocks(theme=theme) as demo:
 
             with gr.Group():
                 with gr.Row():
-                   seed = gr.Textbox(label="English Sequence", max_lines=2)
+                   seed = gr.Textbox(label="Input Sequence", max_lines=2)
 
                 with gr.Row():
-                    output = gr.Textbox(label="German Sequence", max_lines=3)
+                    output = gr.Textbox(label="Output Sequence", max_lines=3)
 
                 with gr.Row():
                     trns_btn = gr.Button("Translate")
                     trns_btn.click(fn=model_config.translate, inputs=[seed], outputs=[output])
                     clear_btn = gr.ClearButton(components=[seed, output, debug_log])
+        
+        with gr.Accordion(label="Examples", open=True):
+            gr.Examples(examples=[
+                "The quick brown fox jumps over the lazy dog.", 
+                "She sells seashells by the seashore.", 
+                "Technology is rapidly changing the way we live and work.", 
+                "Can you recommend a good restaurant nearby?", 
+                "Despite the rain, they decided to go for a hike."], 
+                        inputs=[seed], label="English Sequences")
+            
+            gr.Examples(examples=[
+                "Die schnelle braune Katze sprang über den hohen Zaun.", 
+                "Er spielte den ganzen Tag Videospiele.", 
+                "Das neue Museum in der Stadt ist einen Besuch wert.", 
+                "Kannst du mir helfen, dieses Problem zu lösen?", 
+                "Obwohl sie müde war, arbeitete sie bis spät in die Nacht."], 
+                        inputs=[seed], label="German Sequences")
 
 demo.launch()
