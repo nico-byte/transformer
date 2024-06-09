@@ -1,4 +1,5 @@
 from transformers import AutoTokenizer
+from tokenizer.wordpiece_tokenizer import build_tokenizer
 from datasets import load_dataset
 import random
 
@@ -45,3 +46,11 @@ print(tokenizer.unk_token_id, tokenizer.pad_token_id, tokenizer.bos_token_id, to
 
 print(tokenizer.tokenize("Tom asked his teacher for advice in generally bad situations he had scared his head."))
 print(tokenizer.tokenize("Tom bat seinen Lehrer um Rat in Situationen, in denen er seinen Kopf geschützt hatte."))
+
+src_wordpiece_tokenizer = build_tokenizer("src", "wp_tokenizer_test", en_dataset, en_dataset, 6540)
+
+src_test = src_wordpiece_tokenizer.encode("Tom asked his teacher for advice in generally bad situations he had scared his head.")
+tgt_test = src_wordpiece_tokenizer.encode("Tom bat seinen Lehrer um Rat in Situationen, in denen er seinen Kopf geschützt hatte.")
+
+print(src_test.tokens)
+print(tgt_test.tokens)
