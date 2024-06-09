@@ -11,7 +11,7 @@ transformer:
   emb_size: 1024
   nhead: 32
   dim_feedforward: 2048
-  dropout: 0.1
+  dropout: 0.4
 trainer:
   learning_rate: 0.00007
   num_epochs: 30
