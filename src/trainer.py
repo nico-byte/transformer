@@ -200,8 +200,8 @@ class Trainer():
                 all_preds = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in predictions]
                 all_targets = [[self.tokenizer.decode(tgt, skip_special_tokens=True)] for tgt in targets]
                                 
-                bleu_score = sum(bleu.compute(predictions=[pred], references=[target]) for pred, target in zip(all_preds, all_targets))
-                avg_bleu += bleu_score['bleu']/len(all_preds)
+                bleu_score = sum([bleu.compute(predictions=[pred], references=[target])['bleu'] for pred, target in zip(all_preds, all_targets)])
+                avg_bleu += bleu_score/len(all_preds)
                 
                 rouge_score = rouge.compute(predictions=all_preds, references=all_targets)
                 avg_rouge += rouge_score['rougeLsum']
