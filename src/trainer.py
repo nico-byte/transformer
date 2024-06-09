@@ -89,9 +89,10 @@ class Trainer():
         
                 
         self.criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
-        self.optim = torch.optim.AdamW(self.model.parameters(), 
+        self.optim = torch.optim.Adam(self.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
-                                       amsgrad=True)
+                                       betas=(0.9, 0.98), 
+                                       eps=10e-9)
         
         self.scheduler = InverseSquareRootLRScheduler(optimizer=self.optim, 
                                                       init_lr=2e-6, 
