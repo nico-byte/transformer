@@ -2,9 +2,10 @@ import sys
 
 import torch
 import torch.nn as nn
+import tokenizers
 from evaluate import load as load_metric
 from src.transformer import Seq2SeqTransformer
-from utils.config import TrainerConfig, SharedConfig
+from utils.config import TrainerConfig
 from time import perf_counter
 from utils.logger import get_logger
 
@@ -57,61 +58,79 @@ class EarlyStopper:
 
 
 class Trainer():
-    def __init__(self,
-                 model: Seq2SeqTransformer,
-                 translator,
-                 train_dataloader,
-                 test_dataloader,
-                 val_dataloader,
-                 tokenizer,
-                 early_stopper: EarlyStopper,
-                 trainer_config: TrainerConfig,
-                 shared_config: SharedConfig,
-                 run_id: str,
-                 device):
+    def __init__(self, device):
         self.logger = get_logger('Trainer')
+        
+        self.device = device
         
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+                
+    @classmethod
+    def prepare_for_training(cls, 
+                             model: Seq2SeqTransformer, 
+                             translator, 
+                             train_dataloader, 
+                             test_dataloader, 
+                             val_dataloader, 
+                             tokenizer, 
+                             early_stopper, 
+                             trainer_config, 
+                             device, 
+                             run_id):
+        trainer = cls(device)
         
-        self.model = model.to(device)
-        self.translator = translator
+        trainer.model = model.to(device)
+        trainer.translator = translator
         
-        self.num_epochs = trainer_config.num_epochs
+        trainer.num_epochs = trainer_config.num_epochs
         
-        self.current_epoch = 1
+        trainer.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
         
-        self.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
-        self.tokenizer = tokenizer
-        self.early_stopper = early_stopper
         
-        self.run_id = run_id
+        trainer.current_epoch = 1
+        trainer.tokenizer = tokenizer
+        trainer.early_stopper = early_stopper
+        
+        trainer.run_id = run_id
         
                 
-        self.criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
-        self.optim = torch.optim.Adam(self.model.parameters(), 
+        trainer.criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
+        trainer.optim = torch.optim.Adam(trainer.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
                                        betas=(0.9, 0.98), 
                                        eps=10e-9)
         
-        self.scheduler = InverseSquareRootLRScheduler(optimizer=self.optim, 
+        trainer.scheduler = InverseSquareRootLRScheduler(optimizer=trainer.optim, 
                                                       init_lr=2e-6, 
                                                       max_lr=trainer_config.learning_rate, 
                                                       n_warmup_steps=trainer_config.warmup_steps)
         
-        self.device = device
-        self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size
+        trainer.grad_accum = trainer_config.tgt_batch_size > trainer_config.batch_size
 
-        if self.grad_accum:
-            self.accumulation_steps = trainer_config.tgt_batch_size // self.dataloaders[0].batch_size \
-                if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
+        if trainer.grad_accum:
+            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders[0].batch_size \
+                if trainer_config.tgt_batch_size > trainer.dataloaders[0].batch_size else 1
                 
-    @classmethod
-    def continue_training(cls, *args, **kwargs):
-        return NotImplementedError
+        return trainer
     
     @classmethod
-    def from_pretrained(cls, *args, **kwargs):
+    def evaluate_checkpoint(cls, 
+                   checkpoint_path: str, 
+                   tokenizer_path: str, 
+                   val_dataloader: str, 
+                   device):
+        trainer = cls(device)
+        
+        trainer.model = torch.jit.load(checkpoint_path, map_location=device)
+        trainer.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
+        
+        trainer.val_dataloader = [val_dataloader]
+        
+        return trainer
+    
+    @classmethod
+    def continue_training(cls, *args, **kwargs):
         return NotImplementedError
 
     def _train_epoch(self) -> float:
