@@ -9,7 +9,7 @@ import random
 torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_utils.dill_available()
 
 
-def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int):
+def build_tokenizer(run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int):
     tokenizer = Tokenizer(models.WordPiece(unk_token="<unk>"))
     tokenizer.normalizer = normalizers.NFKC()
     tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
@@ -38,7 +38,7 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     if not os.path.exists(f'./models/{run_id}/'):
         os.makedirs(f'./models/{run_id}/')
 
-    tokenizer.save(f"./models/{run_id}/tokenizer-{name}.json")
+    tokenizer.save(f"./models/{run_id}/tokenizer.json")
     
     return tokenizer
 

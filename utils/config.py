@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel as PydanticBaseModel
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -11,7 +11,7 @@ class BaseModel(PydanticBaseModel):
 
 class SharedConfig(BaseModel):
     special_symbols: List[str] = ['<s>', '<unk>', "</s>"]
-    run_id: str = None
+    run_id: Optional[str] = None
 
 
 class TokenizerConfig(BaseModel):
@@ -20,12 +20,12 @@ class TokenizerConfig(BaseModel):
 
 
 class DataLoaderConfig(PydanticBaseModel):
-    dataset: str
-    batch_size: int
-    num_workers: int
-    pin_memory: bool
-    drop_last: bool
-    shuffle: bool
+    dataset: str = 'iwslt2017'
+    batch_size: int = 64
+    num_workers: int = 2
+    pin_memory: bool = True
+    drop_last: bool = False
+    shuffle: bool = True
     
 
 class TransformerConfig(PydanticBaseModel):

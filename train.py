@@ -78,15 +78,15 @@ def main(args):
 
       early_stopper = EarlyStopper(warmup=17, patience=7, min_delta=0)
 
-      trainer = Trainer(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
-                        tokenizer, early_stopper, trainer_conf, shared_conf, run_id, device)
+      trainer = Trainer.new_instance(transformer, translator, train_dataloader, test_dataloader, val_dataloader, 
+                        tokenizer, early_stopper, trainer_conf, device, run_id)
 
       trainer.train()
       bleu, rouge = trainer.evaluate()
       print(f'\nEvaluation: bleu_score - {bleu}, rouge_score - {rouge}')
 
       TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
-      output = translator.translate(TEST_SEQUENCE, tokenizer=tokenizer, special_symbols=shared_conf.special_symbols)
+      output = translator.translate(TEST_SEQUENCE)
       
       print(f'Input: {TEST_SEQUENCE}, Output: {output}')
       

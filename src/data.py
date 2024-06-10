@@ -9,10 +9,13 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 import torchtext
 torchtext.disable_torchtext_deprecation_warning()
+from tokenizers import Tokenizer
 
 from torchtext.datasets import Multi30k
 from datasets import load_dataset
 from utils.config import DataLoaderConfig, TokenizerConfig, SharedConfig
+from tokenizer.wordpiece_tokenizer import build_tokenizer as build_wordpiece_tokenizer
+from tokenizer.unigram_tokenizer import build_tokenizer as build_unigram_tokenizer
 
 # in case error occurs that it cant be imported by torch
 torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_utils.dill_available()
@@ -65,16 +68,17 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
     def collate_fn(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
         src_batch, tgt_batch = [], []
         for src_sample, tgt_sample in batch:
-            encoded_sample_pair = self.tokenizer(src_sample, text_target=tgt_sample)
-            tensor_src_sample = torch.tensor(encoded_sample_pair["input_ids"])
+            encoded_src_sample = self.tokenizer.encode(src_sample)
+            tensor_src_sample = torch.tensor(encoded_src_sample.ids)
             src_batch.append(tensor_src_sample)
             
-            tensor_tgt_sample = torch.tensor(encoded_sample_pair["labels"])
+            encoded_tgt_sample = self.tokenizer.encode(tgt_sample)
+            tensor_tgt_sample = torch.tensor(encoded_tgt_sample.ids)
             tgt_batch.append(tensor_tgt_sample)
 
 
-        src_batch = nn.utils.rnn.pad_sequence(src_batch, padding_value=self.tokenizer.pad_token_id)
-        tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, padding_value=self.tokenizer.pad_token_id)
+        src_batch = nn.utils.rnn.pad_sequence(src_batch, padding_value=self.tokenizer.token_to_id("<pad>"))
+        tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, padding_value=self.tokenizer.token_to_id("<pad>"))
 
         return src_batch, tgt_batch
     
@@ -102,19 +106,17 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
     
         return clean_dataset
     
-    def train_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained("google-t5/t5-base", cache_dir="./.transformers")
-        
+    def train_tokenizer(self, run_id: str, vocab_size: int, tokenizer: str="wordpiece"):
         dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
         dataset = [(d[self.src_language], d[self.tgt_language]) for d in dataset["train"]['translation']]
 
         src_dataset = [x[0] for x in dataset]
         tgt_dataset = [x[1] for x in dataset]
-        whole_dataset = src_dataset + tgt_dataset
         
-        random.shuffle(whole_dataset)
-
-        self.tokenizer = tokenizer.train_new_from_iterator(self.batch_iterator(whole_dataset), 6480, len(whole_dataset))
+        if tokenizer == "wordpiece":
+            self.tokenizer = build_wordpiece_tokenizer(run_id, src_dataset, tgt_dataset, vocab_size)
+        else:
+            self.tokenizer = build_unigram_tokenizer(run_id, src_dataset, tgt_dataset, vocab_size)
         
     @staticmethod
     def batch_iterator(dataset, batch_size=1000):
@@ -131,12 +133,29 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.build_datasets()
         self.logger.info('Datasets have been loaded.')
         
-        self.train_tokenizer()
+    @classmethod
+    def build_with_tokenizer(cls, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str):
+        dataloader = cls(dl_config, tkn_config, shared_config)
         
-        self.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
+        dataloader.tokenizer = Tokenizer.from_file(tokenizer)
 
-        super().build_dataloaders()
-        self.logger.info('Dataloaders have been built.')
+        super().build_dataloaders(dataloader)
+        dataloader.logger.info('Dataloaders have been built.')
+        
+        return dataloader
+        
+    @classmethod
+    def new_instance(cls, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
+        dataloader = cls(dl_config, tkn_config, shared_config, tokenizer)
+    
+        dataloader.train_tokenizer()
+        
+        dataloader.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
+
+        super().build_dataloaders(dataloader)
+        dataloader.logger.info('Dataloaders have been built.')
+        
+        return dataloader
         
     def build_datasets(self):
         self.train_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["train"]['translation']]

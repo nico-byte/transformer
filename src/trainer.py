@@ -65,19 +65,20 @@ class Trainer():
         
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+        self.dataloaders = {}
                 
     @classmethod
-    def prepare_for_training(cls, 
-                             model: Seq2SeqTransformer, 
-                             translator, 
-                             train_dataloader, 
-                             test_dataloader, 
-                             val_dataloader, 
-                             tokenizer, 
-                             early_stopper, 
-                             trainer_config, 
-                             device, 
-                             run_id):
+    def new_instance(cls, 
+                     model: Seq2SeqTransformer, 
+                     translator, 
+                     train_dataloader, 
+                     test_dataloader, 
+                     val_dataloader, 
+                     tokenizer, 
+                     early_stopper, 
+                     trainer_config, 
+                     device, 
+                     run_id):
         trainer = cls(device)
         
         trainer.model = model.to(device)
@@ -85,7 +86,9 @@ class Trainer():
         
         trainer.num_epochs = trainer_config.num_epochs
         
-        trainer.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
+        trainer.dataloaders['train'] = train_dataloader
+        trainer.dataloaders['test'] = test_dataloader
+        trainer.dataloaders['val'] = val_dataloader
         
         
         trainer.current_epoch = 1
@@ -119,15 +122,19 @@ class Trainer():
                    checkpoint_path: str, 
                    tokenizer_path: str, 
                    val_dataloader: str, 
+                   translator,
                    device):
         trainer = cls(device)
         
         trainer.model = torch.jit.load(checkpoint_path, map_location=device)
         trainer.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
+        trainer.translator = translator
         
-        trainer.val_dataloader = [val_dataloader]
+        trainer.dataloaders['val'] = val_dataloader
         
-        return trainer
+        bleu, rouge = trainer.evaluate()
+        
+        return bleu, rouge
     
     @classmethod
     def continue_training(cls, *args, **kwargs):
@@ -136,7 +143,7 @@ class Trainer():
     def _train_epoch(self) -> float:
         self.model.train()
         losses = 0
-        for batch_idx, (src, tgt) in enumerate(self.dataloaders[0]):
+        for batch_idx, (src, tgt) in enumerate(self.dataloaders['train']):
             tgt = tgt.type(torch.LongTensor)
             src = src.to(self.device)
             tgt = tgt.to(self.device)
@@ -176,7 +183,7 @@ class Trainer():
         self.model.eval()
         losses = 0
         with torch.no_grad():
-            for src, tgt in self.dataloaders[1]:
+            for src, tgt in self.dataloaders['test']:
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
@@ -202,7 +209,8 @@ class Trainer():
         rouge = load_metric("rouge")
         
         with torch.no_grad():
-            for src, tgt in self.dataloaders[-1]:
+            for batch_idx, (src, tgt) in enumerate(self.dataloaders['val']):
+                self.logger.info(f'Evaluating batch {batch_idx+1}/{len(list(self.dataloaders['val']))}')
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
@@ -220,8 +228,8 @@ class Trainer():
                 all_preds = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in predictions]
                 all_targets = [[self.tokenizer.decode(tgt, skip_special_tokens=True)] for tgt in targets]
                                 
-                bleu_score = sum([bleu.compute(predictions=[pred], references=[target])['bleu'] for pred, target in zip(all_preds, all_targets)])
-                avg_bleu += bleu_score/len(all_preds)
+                bleu_score = bleu.compute(predictions=all_preds, references=all_targets)
+                avg_bleu += bleu_score['bleu']
                 
                 rouge_score = rouge.compute(predictions=all_preds, references=all_targets)
                 avg_rouge += rouge_score['rougeLsum']

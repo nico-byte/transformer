@@ -1,12 +1,28 @@
 import torch
 from torch import Tensor
+import tokenizers
 
 
 class Processor():
-    def __init__(self, model, device, special_symbols):
-        self.model = model
-        self.device = device
-        self.special_symbols = special_symbols
+    @classmethod
+    def from_instance(cls, model, tokenizer, device):
+        processor = cls()
+        
+        processor.model = model
+        processor.tokenizer = tokenizer
+        processor.device = device
+        
+        return processor
+        
+    @classmethod
+    def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+        processor = cls()
+
+        processor.model = torch.jit.load(model_checkpoint, map_location=device)
+        processor.tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
+        processor.device = device
+        
+        return processor
     
     def generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(0, 1)
@@ -47,13 +63,13 @@ class Processor():
                 break
         return ys
 
-    def translate(self, src_sentence: str, tokenizer, special_symbols) -> str:
+    def translate(self, src_sentence: str) -> str:
         self.model.eval()
-        encoded_src = tokenizer.encode(src_sentence)
+        encoded_src = self.encode(src_sentence).ids
         src = torch.tensor(encoded_src).view(-1, 1)
         num_tokens = src.shape[0]
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         with torch.no_grad():
             tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
-                                            eos_token_id=tokenizer.eos_token_id).flatten()
-        return tokenizer.decode(list(tgt_tokens.cpu().numpy()), skip_special_tokens=True)
+                                            eos_token_id=self.tokenizer.token_to_id("<eos>")).flatten()
+        return self.tokenizer.decode(list(tgt_tokens.cpu().numpy()), skip_special_tokens=True)
