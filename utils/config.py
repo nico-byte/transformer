@@ -15,8 +15,8 @@ class SharedConfig(BaseModel):
 
 
 class TokenizerConfig(BaseModel):
-    src_language: str = 'de'
-    tgt_language: str = 'en'
+    src_language: str = 'en'
+    tgt_language: str = 'de'
 
 
 class DataLoaderConfig(PydanticBaseModel):

@@ -41,6 +41,7 @@ def main(args):
       bleu = load_metric("bleu")
       sacre_bleu = load_metric("sacrebleu")
       rouge = load_metric("rouge")
+      meteor = load_metric("meteor")
       
       outputs = []
       sources = [x[0] for x in val_dataset]
@@ -58,8 +59,10 @@ def main(args):
       sacre_bleu_score = sacre_bleu.compute(predictions=outputs, references=targets)
                                 
       rouge_score = rouge.compute(predictions=outputs, references=targets)
+      
+      meteor_score = meteor.compute(predictions=outputs, references=targets)
                                       
-      print(f'\n\nEvaluation: bleu_score - {bleu_score}\nEvaluation: rouge_score - {rouge_score}\nEvaluation: sacre_bleu_score - {sacre_bleu_score}')
+      print(f'\n\nEvaluation: bleu_score - {bleu_score}\nEvaluation: rouge_score - {rouge_score}\nEvaluation: sacre_bleu_score - {sacre_bleu_score}\nEvaluation: meteor_score - {meteor_score}')
       
       TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
       output = translator.translate(TEST_SEQUENCE)
