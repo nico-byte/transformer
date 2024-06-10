@@ -1,8 +1,8 @@
 import warnings
 import argparse
+from evaluate import load as load_metric
 
 from src.data import IWSLT2017DataLoader, Multi30kDataLoader
-from src.trainer import Trainer
 from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig
 from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -32,21 +32,35 @@ def main(args):
       else:
             dataloader = Multi30kDataLoader(dl_conf, tkn_conf, shared_conf)
             
-      val_dataloader = dataloader.val_dataloader
-            
+      val_dataset = dataloader.val_dataset
+                  
       translator = Processor.from_checkpoint(model_checkpoint=path_to_checkpoint, 
                                              tokenizer=path_to_tokenizer, 
                                              device=device)
-
-
-      bleu, rouge = Trainer.evaluate_checkpoint(checkpoint_path=path_to_checkpoint, 
-                                                tokenizer_path=path_to_tokenizer, 
-                                                val_dataloader=val_dataloader, 
-                                                translator=translator,
-                                                device=device)
-
-      print(f'\nEvaluation: bleu_score - {bleu}, rouge_score - {rouge}')
-
+      
+      bleu = load_metric("bleu")
+      sacre_bleu = load_metric("sacrebleu")
+      rouge = load_metric("rouge")
+      
+      outputs = []
+      sources = [x[0] for x in val_dataset]
+      targets = [x[1] for x in val_dataset]
+      
+      for idx, src in enumerate(sources):
+            output = translator.translate(src)
+            
+            outputs.append(output)
+            
+            print(f"{idx+1}/{len(sources)}", end='\r')
+            
+      bleu_score = bleu.compute(predictions=outputs, references=targets)
+            
+      sacre_bleu_score = sacre_bleu.compute(predictions=outputs, references=targets)
+                                
+      rouge_score = rouge.compute(predictions=outputs, references=targets)
+                                      
+      print(f'\n\nEvaluation: bleu_score - {bleu_score}\nEvaluation: rouge_score - {rouge_score}\nEvaluation: sacre_bleu_score - {sacre_bleu_score}')
+      
       TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
       output = translator.translate(TEST_SEQUENCE)
       

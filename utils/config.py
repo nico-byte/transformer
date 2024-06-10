@@ -10,13 +10,13 @@ class BaseModel(PydanticBaseModel):
 
 
 class SharedConfig(BaseModel):
-    special_symbols: List[str] = ['<s>', '<unk>', "</s>"]
+    special_symbols: List[str] = ['<unk>', '<bos>', "<eos>", "<pad>"]
     run_id: Optional[str] = None
 
 
 class TokenizerConfig(BaseModel):
-    src_language: str = 'en'
-    tgt_language: str = 'de'
+    src_language: str = 'de'
+    tgt_language: str = 'en'
 
 
 class DataLoaderConfig(PydanticBaseModel):

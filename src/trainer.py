@@ -232,7 +232,10 @@ class Trainer():
                 all_preds = self.tokenizer.decode_batch(predictions)
                 all_targets = self.tokenizer.decode_batch(targets)
                 
-                print(all_preds[0], all_targets[0])
+                print(src.T[0])
+                print(tgt.T[0])
+                print(all_preds[0])
+                print(all_targets[0])
                 
                 bleu_score = bleu.compute(predictions=all_preds, references=all_targets)
                 avg_bleu += bleu_score['bleu']
