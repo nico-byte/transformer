@@ -65,7 +65,7 @@ class Processor():
 
     def translate(self, src_sentence: str) -> str:
         self.model.eval()
-        encoded_src = self.encode(src_sentence).ids
+        encoded_src = self.tokenizer.encode(src_sentence).ids
         src = torch.tensor(encoded_src).view(-1, 1)
         num_tokens = src.shape[0]
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)

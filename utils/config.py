@@ -21,7 +21,7 @@ class TokenizerConfig(BaseModel):
 
 class DataLoaderConfig(PydanticBaseModel):
     dataset: str = 'iwslt2017'
-    batch_size: int = 64
+    batch_size: int = 128
     num_workers: int = 2
     pin_memory: bool = True
     drop_last: bool = False

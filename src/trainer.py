@@ -132,7 +132,7 @@ class Trainer():
         
         trainer.dataloaders['val'] = val_dataloader
         
-        bleu, rouge = trainer.evaluate()
+        bleu, rouge = trainer.evaluate(inference=True)
         
         return bleu, rouge
     
@@ -176,7 +176,7 @@ class Trainer():
 
             losses += loss.item()
         
-        return losses / len(list(self.dataloaders[0]))
+        return losses / len(list(self.dataloaders['train']))
 
 
     def _test_epoch(self) -> float:
@@ -198,10 +198,10 @@ class Trainer():
                 
                 losses += loss.item()
 
-        return losses / len(list(self.dataloaders[1]))
+        return losses / len(list(self.dataloaders['test']))
 
 
-    def evaluate(self) -> float:
+    def evaluate(self, inference: bool=False) -> float:
         self.model.eval()
         avg_bleu = 0
         avg_rouge = 0
@@ -214,28 +214,34 @@ class Trainer():
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
-
+                
                 tgt_input = tgt[:-1, :]
                 src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
-
-                with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                    logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
                 
-                predictions = torch.argmax(logits, dim=-1)
-                predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
-                targets = tgt_input.T.cpu().numpy().tolist()
-
-                all_preds = [self.tokenizer.decode(pred, skip_special_tokens=True) for pred in predictions]
-                all_targets = [[self.tokenizer.decode(tgt, skip_special_tokens=True)] for tgt in targets]
+                if inference:
+                    with torch.no_grad():
+                        logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
+                else:
+                    with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                        logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
                                 
+                predictions = torch.argmax(logits, dim=-1)
+                predictions = predictions.T.cpu().numpy().tolist()
+                targets = tgt_input.T.cpu().numpy().tolist()
+                
+                all_preds = self.tokenizer.decode_batch(predictions)
+                all_targets = self.tokenizer.decode_batch(targets)
+                
+                print(all_preds[0], all_targets[0])
+                
                 bleu_score = bleu.compute(predictions=all_preds, references=all_targets)
                 avg_bleu += bleu_score['bleu']
-                
+                                
                 rouge_score = rouge.compute(predictions=all_preds, references=all_targets)
                 avg_rouge += rouge_score['rougeLsum']
-                
-        avg_bleu /= len(list(self.dataloaders[-1]))
-        avg_rouge /= len(list(self.dataloaders[-1]))
+                                
+        avg_bleu /= len(list(self.dataloaders['val']))
+        avg_rouge /= len(list(self.dataloaders['val']))
         
         return avg_bleu, avg_rouge
 
