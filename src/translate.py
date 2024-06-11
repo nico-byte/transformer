@@ -5,6 +5,19 @@ from utils.config import SharedConfig
 
 
 def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
+    """
+    Translate a sequence using a model checkpoint.
+
+    Args:
+        checkpoint (str): Path to the model checkpoint.
+        tokenizer (str): Path to the tokenizer.
+        sequence (str): Input sequence to translate.
+        device: Device to run the model on.
+
+    Returns:
+        str: Translated sequence.
+    """
+
     checkpoint = torch.jit.load(checkpoint, map_location=device)
 
     shared_config = SharedConfig()
@@ -20,6 +33,16 @@ def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
     
 
 def check_device(dvc=None):
+    """
+    Check and return the appropriate torch device.
+
+    Args:
+        dvc: Device string. Defaults to None.
+
+    Returns:
+        torch.device: The selected device.
+    """
+
     if dvc is not None:
         try:
             device = torch.device(dvc)

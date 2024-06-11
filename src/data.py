@@ -20,7 +20,38 @@ torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_uti
 
 
 class BaseDataLoader(metaclass=abc.ABCMeta):
+    """
+    Base class for data loaders, providing common functionality and abstract methods for building datasets.
+
+    Attributes:
+        batch_size (int): Batch size for data loading.
+        num_workers (int): Number of workers for data loading.
+        pin_memory (bool): Whether to pin memory during data loading.
+        drop_last (bool): Whether to drop the last incomplete batch.
+        shuffle (bool): Whether to shuffle the data.
+        tokenizer: Tokenizer to be used for encoding sequences.
+        src_language (str): Source language code.
+        tgt_language (str): Target language code.
+        special_symbols (List[str]): List of special symbols for tokenization.
+        train_dataset (List[Tuple[str, str]]): Training dataset.
+        val_dataset (List[Tuple[str, str]]): Validation dataset.
+        test_dataset (List[Tuple[str, str]]): Test dataset.
+        train_dataloader: DataLoader for the training dataset.
+        val_dataloader: DataLoader for the validation dataset.
+        test_dataloader: DataLoader for the test dataset.
+        logger: Logger for the data loader.
+    """
+
     def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig):
+        """
+        Initialize the data loader with configuration and tokenizer settings.
+
+        Args:
+            dl_config (DataLoaderConfig): Configuration for the data loader.
+            tkn_config (TokenizerConfig): Configuration for the tokenizer.
+            shared_config (SharedConfig): Shared configuration settings.
+        """
+
         self.batch_size: int = dl_config.batch_size
         self.num_workers: int = dl_config.num_workers
         self.pin_memory: bool = dl_config.pin_memory
@@ -38,9 +69,17 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def build_datasets(self):
+        """
+        Abstract method for building datasets. Must be implemented by subclasses.
+        """
+
         pass
 
     def build_dataloaders(self):
+        """
+        Build DataLoaders for the training, validation, and test datasets.
+        """
+
         self.train_dataloader = DataLoader(self.train_dataset, 
                                            batch_size=self.batch_size, 
                                            collate_fn=self.collate_fn, 
@@ -64,6 +103,16 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
                                          drop_last=self.drop_last)
 
     def collate_fn(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Collate function to process a batch of data.
+
+        Args:
+            batch (List[Tuple[str, str]]): Batch of source and target sequences.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Padded source and target batches as tensors.
+        """
+
         src_batch, tgt_batch = [], []
         for src_sample, tgt_sample in batch:
             encoded_src_sample = self.tokenizer.encode(src_sample)
@@ -80,6 +129,17 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         return src_batch, tgt_batch
     
     def backtranslate_dataset(self, whole_dataset: List[Tuple[str, str]], tgt_dataset: List[str]):
+        """
+        Perform backtranslation on the target dataset to augment the training data.
+
+        Args:
+            whole_dataset (List[Tuple[str, str]]): Original dataset.
+            tgt_dataset (List[str]): Target dataset for backtranslation.
+
+        Returns:
+            List[Tuple[str, str]]: Augmented dataset with backtranslated pairs.
+        """
+
         backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 256)
         
         backtrans_dataset_pairs = [[x, y] for x, y in zip(backtrans_dataset, tgt_dataset)]
@@ -90,6 +150,16 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         return clean_dataset
     
     def clean_dataset(self, dataset: List[Tuple[str, str]]):
+        """
+        Clean the dataset by removing duplicates and empty sequences.
+
+        Args:
+            dataset (List[Tuple[str, str]]): Dataset to be cleaned.
+
+        Returns:
+            List[Tuple[str, str]]: Cleaned dataset.
+        """
+
         src_dataset = [x[0] for x in dataset]
         tgt_dataset = [x[1] for x in dataset]
         
@@ -105,7 +175,24 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
 
 class IWSLT2017DataLoader(BaseDataLoader):
+    """
+    DataLoader for the IWSLT2017 dataset, inheriting from BaseDataLoader.
+
+    Attributes:
+        dataset: Loaded IWSLT2017 dataset.
+    """
+
     def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
+        """
+        Initialize the IWSLT2017DataLoader with configuration and tokenizer settings.
+
+        Args:
+            dl_config (DataLoaderConfig): Configuration for the data loader.
+            tkn_config (TokenizerConfig): Configuration for the tokenizer.
+            shared_config (SharedConfig): Shared configuration settings.
+            tokenizer (str): Type of tokenizer to use ("wordpiece" or "unigram").
+        """
+
         super().__init__(dl_config, tkn_config, shared_config)
         
         self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
@@ -127,6 +214,10 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.logger.info('Dataloaders have been built.')
         
     def build_datasets(self):
+        """
+        Build the datasets for training, validation, and testing from the IWSLT2017 dataset.
+        """  
+
         self.train_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["train"]['translation']]
         self.test_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["test"]['translation']]
         self.val_dataset: List[str, str] = [(d[self.src_language], d[self.tgt_language]) for d in self.dataset["validation"]['translation']]
@@ -140,7 +231,24 @@ class IWSLT2017DataLoader(BaseDataLoader):
 
 
 class Multi30kDataLoader(BaseDataLoader):
+    """
+    DataLoader for the Multi30k dataset, inheriting from BaseDataLoader.
+
+    Attributes:
+        dataset: Loaded Multi30k dataset.
+    """
+
     def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
+        """
+        Initialize the Multi30kDataLoader with configuration and tokenizer settings.
+
+        Args:
+            dl_config (DataLoaderConfig): Configuration for the data loader.
+            tkn_config (TokenizerConfig): Configuration for the tokenizer.
+            shared_config (SharedConfig): Shared configuration settings.
+            tokenizer (str): Type of tokenizer to use ("wordpiece" or "unigram").
+        """
+
         super().__init__(dl_config, tkn_config, shared_config)
 
         self.build_datasets()
@@ -160,6 +268,10 @@ class Multi30kDataLoader(BaseDataLoader):
         self.logger.info('Dataloaders have been built.')
         
     def build_datasets(self):
+        """
+        Build the datasets for training, validation, and testing from the Multi30k dataset.
+        """
+
         self.train_dataset: List[str, str] = list(Multi30k(root='./.data/multi30k', split='train',
                                       language_pair=(self.src_language, self.tgt_language)))
         

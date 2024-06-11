@@ -19,6 +19,18 @@ if not os.path.exists('./.nltk_data'):
 
 
 def parsing_args():
+      """
+      Parse command line arguments for the training and evaluation pipeline.
+
+      The function creates an argument parser, adds the necessary arguments,    
+      and parses them from the command line input. The expected arguments are:
+      - path_to_config (str): The path to the configuration YAML file.
+      - run-id (str, optional): A unique identifier for the training run.
+      - torch-device (str, optional): The device to run the model on, with
+        possible choices being 'cpu', 'cuda', 'cuda:0', or 'cuda:1'. Defaults to 'cpu'.
+
+      """
+
       parser = argparse.ArgumentParser(description='Parsing some important arguments.')
       parser.add_argument('path_to_config', type=str)
       parser.add_argument('--run-id', type=str)
@@ -27,6 +39,31 @@ def parsing_args():
       return parser.parse_args()
 
 def main(args):
+      """
+      
+      Main function to execute the training and evaluation pipeline for a Seq2Seq Transformer model.
+
+      The function performs the following steps:
+      1. Initializes the logger.
+      2. Checks if the specified run ID already exists and creates a directory for it if it doesn't.
+      3. Loads the configuration from the provided YAML file.
+      4. Initializes tokenizer, shared, and dataloader configurations.
+      5. Loads the appropriate dataset based on the configuration.
+      6. Initializes the Seq2Seq Transformer model and processor.
+      7. Sets up the trainer configuration and model summary.
+      8. Initializes early stopping criteria and the trainer.
+      9. Trains the model and evaluates its performance.
+      10. Demonstrates the model's translation capability with a test sequence.
+
+      Args:
+            args: Parsed command line arguments containing:
+                  - path_to_config (str): Path to the configuration YAML file.
+                  - run_id (str): Unique run identifier.
+                  - torch_device (str): Device to run the model on (e.g., 'cpu', 'cuda', etc.).
+      Raises:
+            SystemExit: If the specified run ID already exists.
+
+      """
       path_to_config = args.path_to_config
       run_id = args.run_id
       device = args.torch_device

@@ -10,6 +10,23 @@ torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_uti
 
 
 def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int):
+    """
+    Build and train a WordPiece tokenizer on the provided source dataset.
+
+    Args:
+        name (str): The name to save the tokenizer under.
+        run_id (str): The run identifier for saving the tokenizer.
+        src_dataset (List[str]): The source dataset for tokenization.
+        tgt_dataset (List[str]): The target dataset for tokenization (not used in current implementation).
+        vocab_size (int): The vocabulary size for the tokenizer.
+
+    Returns:
+        Tokenizer: The trained tokenizer.
+
+    The function trains a WordPiece tokenizer on the source dataset. The tokenizer is configured with normalization,
+    pre-tokenization, and post-processing steps, and is then saved to the specified directory under the given run ID.
+    """
+
     tokenizer = Tokenizer(models.WordPiece(unk_token="<unk>"))
     tokenizer.normalizer = normalizers.NFKC()
     tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
@@ -43,5 +60,17 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     return tokenizer
 
 def batch_iterator(dataset, batch_size=1000):
+        """
+        Batch iterator to yield batches of data from the dataset.
+
+        Args:
+            dataset (List[str]): The dataset to iterate over.
+            batch_size (int, optional): The size of each batch. Defaults to 1000.
+
+        Yields:
+            List[str]: A batch of data from the dataset.
+
+        The function splits the dataset into batches of the specified size and yields each batch.
+        """    
         for i in range(0, len(dataset), batch_size):
             yield dataset[i : i + batch_size]

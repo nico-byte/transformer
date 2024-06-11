@@ -3,6 +3,21 @@ import torch
 
 
 def dummy_training(device, dtype, learning_rate, timesteps, x, y):
+    """
+    Perform dummy training with a simple regression model.
+
+    Args:
+        device: Device to perform training on.
+        dtype: Data type for the tensors.
+        learning_rate (float): Learning rate for gradient descent.
+        timesteps (int): Number of training steps.
+        x: Input tensor.
+        y: Output tensor.
+
+    Yields:
+        None
+    """
+
     # Randomly initialize weights
     a = torch.randn((), device=device, dtype=dtype)
     b = torch.randn((), device=device, dtype=dtype)

@@ -3,18 +3,70 @@ from torch import Tensor
 
 
 class Processor():
+    """
+    Processor class for performing translation using a Transformer model.
+
+    Args:
+        model (nn.Module): The Transformer model.
+        device (torch.device): The device to run the model on.
+        special_symbols (List[str]): List of special symbols used in the tokenizer.
+
+    Methods:
+        generate_square_subsequent_mask(sz: int) -> torch.Tensor:
+            Generate a square subsequent mask of size sz x sz.
+
+        create_mask(src: Tensor, tgt: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+            Create masks for source and target sequences.
+
+        greedy_decode(src: Tensor, src_mask: Tensor, max_len: int, start_symbol: str, special_symbols: List[str]) -> Tensor:
+            Perform greedy decoding for translation.
+
+        translate(src_sentence: str, tokenizer, special_symbols: List[str]) -> str:
+            Translate a source sentence to the target language.
+    """
+
     def __init__(self, model, device, special_symbols):
+        """
+        Initialize the Processor.
+
+        Args:
+            model (nn.Module): The Transformer model.
+            device (torch.device): The device to run the model on.
+            special_symbols (List[str]): List of special symbols used in the tokenizer.
+        """
+
         self.model = model
         self.device = device
         self.special_symbols = special_symbols
     
     def generate_square_subsequent_mask(self, sz):
+        """
+        Generate a square subsequent mask of size sz x sz.
+
+        Args:
+            sz (int): Size of the square mask.
+
+        Returns:
+            torch.Tensor: Square subsequent mask.
+        """
+
         mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
 
     def create_mask(self, src: Tensor, tgt: Tensor):
+        """
+        Create masks for source and target sequences.
+
+        Args:
+            src (Tensor): Source sequence.
+            tgt (Tensor): Target sequence.
+
+        Returns:
+            Tuple[Tensor, Tensor, Tensor, Tensor]: Source mask, target mask, source padding mask, target padding mask.
+        """
+
         src_seq_len = src.shape[0]
         tgt_seq_len = tgt.shape[0]
 
@@ -26,6 +78,20 @@ class Processor():
         return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
     
     def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int, start_symbol: str, special_symbols) -> Tensor:
+        """
+        Perform greedy decoding for translation.
+
+        Args:
+            src (Tensor): Source sequence.
+            src_mask (Tensor): Source mask.
+            max_len (int): Maximum length of the decoded sequence.
+            start_symbol (str): Start symbol for decoding.
+            special_symbols (List[str]): List of special symbols.
+
+        Returns:
+            Tensor: Decoded sequence.
+        """
+
         src = src.to(self.device)
         src_mask = src_mask.to(self.device)
 
@@ -48,6 +114,18 @@ class Processor():
         return ys
 
     def translate(self, src_sentence: str, tokenizer, special_symbols) -> str:
+        """
+        Translate a source sentence to the target language.
+
+        Args:
+            src_sentence (str): Source sentence.
+            tokenizer: Tokenizer for the source and target languages.
+            special_symbols (List[str]): List of special symbols.
+
+        Returns:
+            str: Translated sentence.
+        """
+
         self.model.eval()
         src = torch.tensor(tokenizer.encode(src_sentence).ids).view(-1, 1)
         num_tokens = src.shape[0]

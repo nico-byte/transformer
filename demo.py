@@ -7,12 +7,37 @@ from src.t5_inference import get_base_model, t5_inference
 device = check_device('cpu')
 
 class ModelConfig:
+    """
+    A class to manage and configure different translation models.
+
+    Attributes:
+        model (str): The model to be used for translation.
+        custom_tokenizer (str): The custom tokenizer to be used for translation.
+        tokenizer (str): The tokenizer to be used for T5 model translation.
+    """
+
     def __init__(self, model=None, custom_tokenizer=None, tokenizer=None):
+        """
+        Initialize the ModelConfig class.
+
+        Args:
+            model (str): The model to be used for translation.
+            custom_tokenizer (str): The custom tokenizer to be used for translation.
+            tokenizer (str): The tokenizer to be used for T5 model translation.
+        """
+
         self.model = model
         self.custom_tokenizer = custom_tokenizer
         self.tokenizer = tokenizer
         
     def set_t5_model(self):
+        """
+        Load and set the T5 model and tokenizer.
+
+        Returns:
+            str: A message indicating whether the T5 model was successfully loaded.
+        """
+
         try:
             tokenizer, model = get_base_model(device)
             self.model, self.tokenizer, self.custom_tokenizer = model, tokenizer, None
@@ -22,6 +47,17 @@ class ModelConfig:
             return "Something went wrong!"
         
     def set_custom_model(self, model, tokenizer):
+        """
+        Load and set a custom model and tokenizer.
+
+        Args:
+            model: The file path to the custom model.
+            tokenizer: The file path to the custom tokenizer.
+
+        Returns:
+            str: A message indicating whether the custom model was successfully loaded.
+        """
+
         if not isinstance(model, gr.utils.NamedString) or not isinstance(tokenizer, gr.utils.NamedString):
             return f"Please provide a model and tokenizer, {model}; {tokenizer}"
         model = self.process_file(model)
@@ -34,9 +70,29 @@ class ModelConfig:
         
     @staticmethod
     def process_file(fileobj):
+        """
+        Process the uploaded file.
+
+        Args:
+            fileobj: The file object to be processed.
+
+        Returns:
+            str: The file name.
+        """
+
         return fileobj.name
         
     def _translate_t5(self, sequence):
+        """
+        Translate a sequence using the T5 model.
+
+        Args:
+            sequence (str): The input sequence to be translated.
+
+        Returns:
+            str: The translated sequence.
+        """
+
         try:
             output = t5_inference(self.tokenizer, self.model, sequence, device)
             return output
@@ -44,6 +100,16 @@ class ModelConfig:
             return e
         
     def _translate_custom(self, sequence):
+        """
+        Translate a sequence using the custom model.
+
+        Args:
+            sequence (str): The input sequence to be translated.
+
+        Returns:
+            str: The translated sequence.
+        """
+
         try:
             output = translate_sequence_from_checkpoint(self.model, self.custom_tokenizer, sequence, device)
             return output
@@ -51,17 +117,30 @@ class ModelConfig:
             return e
         
     def translate(self, sequence):
+        """
+        Translate a sequence using the loaded model.
+
+        Args:
+            sequence (str): The input sequence to be translated.
+
+        Returns:
+            str: The translated sequence.
+        """
+
         if self.custom_tokenizer is not None:
             return self._translate_custom(sequence)
         elif self.tokenizer is not None:
             return self._translate_t5(sequence)
         else:
             return 'Load the model first!'
-        
+
+# Initialize model configuration
 model_config = ModelConfig()
 
+# Set up Gradio theme
 theme = gr.themes.Default()
 
+# Build Gradio interface
 with gr.Blocks(theme=theme) as demo:
     header = gr.Markdown("# KI in den Life Sciences: Machine Translation Demo")
     line1 = gr.Markdown("by [Nico Fuchs](https://github.com/nico-byte) and [Matthias Laton](https://github.com/20DragonSlayer01)")
@@ -141,4 +220,5 @@ with gr.Blocks(theme=theme) as demo:
                 "Obwohl sie müde war, arbeitete sie bis spät in die Nacht."], 
                         inputs=[seed], label="German Sequences")
 
+# Launch the Gradio demo
 demo.launch()

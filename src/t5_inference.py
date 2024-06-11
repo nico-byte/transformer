@@ -2,6 +2,16 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration, MarianMTModel,
 
 
 def get_base_model(device):
+    """
+    Load a base T5 model and tokenizer from the 'google-t5/t5-small' checkpoint.
+
+    Args:
+        device: The device to run the model on.
+
+    Returns:
+        Tuple[T5Tokenizer, T5ForConditionalGeneration]: A tuple containing the tokenizer and the model, both loaded and moved to the specified device.
+    """
+
     tokenizer = T5Tokenizer.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/")
     model = T5ForConditionalGeneration.from_pretrained("google-t5/t5-small", cache_dir="./.transformers/")
     
@@ -9,6 +19,19 @@ def get_base_model(device):
 
 
 def t5_inference(tokenizer, model, sequence, device):
+    """
+    Perform inference using a T5 model for translation from English to German.
+
+    Args:
+        tokenizer: The tokenizer for the T5 model.
+        model: The T5 model for translation.
+        sequence (str): The input sequence to translate from English to German.
+        device: The device to run the model on.
+
+    Returns:
+        str: The translated sequence from English to German.
+    """
+
     model.eval()
 
     sequence = ["translate English to German: " + sequence]
@@ -18,6 +41,18 @@ def t5_inference(tokenizer, model, sequence, device):
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 def mt_batch_inference(sequences, device, batch_size=1):
+    """
+    Perform batch inference for machine translation using a MarianMTModel.
+
+    Args:
+        sequences: Input sequences to translate.
+        device: Device to run the model on.
+        batch_size: Batch size for inference. Defaults to 1.
+
+    Returns:
+        List[str]: Translated sequences.
+    """
+
     tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-de-en")
     model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-de-en").to(device)
     

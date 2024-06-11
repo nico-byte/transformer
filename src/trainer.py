@@ -9,7 +9,21 @@ from time import perf_counter
 from utils.logger import get_logger
 
 class InverseSquareRootLRScheduler:
+    """
+    Implements a learning rate scheduler with inverse square root decay.
+    """
+
     def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps):
+        """
+        Initialize the scheduler.
+
+        Args:
+            optimizer: The optimizer to adjust the learning rate for.
+            init_lr (float): The initial learning rate.
+            max_lr (float): The maximum learning rate.
+            n_warmup_steps (int): The number of warmup steps.
+        """
+
         self.optimizer = optimizer
         self.init_lr = init_lr
         self.max_lr = max_lr
@@ -19,6 +33,10 @@ class InverseSquareRootLRScheduler:
         self.n_steps = 0
 
     def step(self):
+        """
+        Update the learning rate for the optimizer.
+        """
+
         self.n_steps += 1
                 
         if self.n_steps < self.n_warmup_steps:
@@ -30,11 +48,28 @@ class InverseSquareRootLRScheduler:
             param_group['lr'] = self.lr
 
     def get_lr(self):
+        """
+        Get the current learning rate.
+        """
+
         return self.optimizer.param_groups[0]['lr']
 
 
 class EarlyStopper:
+    """
+    Implements early stopping to prevent overfitting during training.
+    """
+
     def __init__(self, warmup: int=5, patience: int=1, min_delta: int=0):
+        """
+        Initialize the early stopper.
+
+        Args:
+            warmup: The number of warmup epochs. Defaults to 5.
+            patience: The number of epochs to wait before stopping. Defaults to 1.
+            min_delta: The minimum change in validation loss to qualify as an improvement. Defaults to 0.
+        """
+
         self.warmup = warmup
         self.patience: int = patience
         self.min_delta: int = min_delta
@@ -43,6 +78,17 @@ class EarlyStopper:
         self.logger = get_logger('EarlyStopper')
 
     def early_stop(self, epoch, validation_loss):
+        """
+        Check if early stopping criterion is met.
+
+        Args:
+            epoch (int): The current epoch.
+            validation_loss (float): The validation loss.
+
+        Returns:
+            bool: True if early stopping criterion is met, False otherwise.
+        """
+
         if epoch < self.warmup:
             return False
         if validation_loss < self.min_validation_loss:
@@ -57,6 +103,10 @@ class EarlyStopper:
 
 
 class Trainer():
+    """
+    Class for training a sequence-to-sequence transformer model.
+    """
+
     def __init__(self,
                  model: Seq2SeqTransformer,
                  translator,
@@ -69,6 +119,23 @@ class Trainer():
                  shared_config: SharedConfig,
                  run_id: str,
                  device):
+        """
+        Initialize the trainer.
+
+        Args:
+            model (Seq2SeqTransformer): The sequence-to-sequence transformer model.
+            translator: The translator object.
+            train_dataloader: The training dataloader.
+            test_dataloader: The test dataloader.
+            val_dataloader: The validation dataloader.
+            tokenizer: The tokenizer.
+            early_stopper (EarlyStopper): The early stopper object.
+            trainer_config (TrainerConfig): The trainer configuration.
+            shared_config (SharedConfig): The shared configuration.
+            run_id (str): The ID for this training run.
+            device: The device to run the training on.
+        """        
+
         self.logger = get_logger('Trainer')
         
         self.use_amp = True
@@ -107,13 +174,34 @@ class Trainer():
                 
     @classmethod
     def continue_training(cls, *args, **kwargs):
+        """
+        Continue training from a checkpoint.
+
+        Returns:
+            NotImplementedError: Method not implemented.
+        """
+
         return NotImplementedError
     
     @classmethod
     def from_pretrained(cls, *args, **kwargs):
+        """
+        Load a pre-trained model for training.
+
+        Returns:
+            NotImplementedError: Method not implemented.
+        """
+
         return NotImplementedError
 
     def _train_epoch(self) -> float:
+        """
+        Train the model for one epoch.
+
+        Returns:
+            float: The average training loss for the epoch.
+        """
+
         self.model.train()
         losses = 0
         for batch_idx, (src, tgt) in enumerate(self.dataloaders[0]):
@@ -153,6 +241,13 @@ class Trainer():
 
 
     def _test_epoch(self) -> float:
+        """
+        Test the model for one epoch.
+
+        Returns:
+            float: The average test loss for the epoch.
+        """
+
         self.model.eval()
         losses = 0
         with torch.no_grad():
@@ -175,6 +270,13 @@ class Trainer():
 
 
     def evaluate(self) -> float:
+        """
+        Evaluate the model.
+
+        Returns:
+            float: The average meteor score for the evaluation dataset.
+        """
+
         self.model.eval()
         avg_meteor = 0
         with torch.no_grad():
@@ -203,6 +305,10 @@ class Trainer():
         return avg_meteor / len(list(self.dataloaders[-1]))
 
     def train(self):
+        """
+        Train the model until convergence or early stopping.
+        """
+
         try:
             for epoch in range(self.current_epoch, self.num_epochs+1):
                 start_time = perf_counter()
@@ -232,10 +338,24 @@ class Trainer():
         self._save_model()
             
     def _save_model(self, name=""):
+        """
+        Save the model checkpoint.
+
+        Args:
+            name: The name of the model checkpoint. Defaults to "".
+        """
+
         self._save_model_infer(name)
         self._save_model_train(name)
     
     def _save_model_infer(self, name=""):
+        """
+        Save the model checkpoint for inference.
+
+        Args:
+            name: The name of the model checkpoint. Defaults to "".
+        """
+
         model_filepath = f'./models/{self.run_id}/{name}checkpoint_scripted.pt'
         
         model_scripted = torch.jit.script(self.model)
@@ -243,6 +363,13 @@ class Trainer():
         self.logger.info(f'Saved model checkpoint to {model_filepath}')
         
     def _save_model_train(self, name=""):
+        """
+        Save the model checkpoint for further training.
+
+        Args:
+            name: The name of the model checkpoint. Defaults to "".
+        """
+
         model_filepath = f'./models/{self.run_id}/{name}checkpoint.pt'
         
         torch.save({
@@ -255,6 +382,10 @@ class Trainer():
         self.logger.info(f'Saved model checkpoint to {model_filepath}')
         
     def load_model(self):
+        """
+        Load the model from a checkpoint.
+        """
+    
         filepath = f'./models/{self.run_id}/checkpoint.pt'
         self.model = torch.jit.script(filepath)
         self.logger.info(f'Model checkpoint have been loaded from {filepath}')
