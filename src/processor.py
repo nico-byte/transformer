@@ -69,8 +69,8 @@ class Processor():
 
             ys = torch.cat([ys,
                         torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0)
-            # if next_word == eos_token_id:
-                # break
+            if next_word == eos_token_id:
+                break
         return ys
 
     def translate(self, src_sentence: str) -> str:
@@ -81,5 +81,5 @@ class Processor():
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         with torch.no_grad():
             tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
-                                            eos_token_id=self.tokenizer.token_to_id("<eos>")).flatten()
+                                            eos_token_id=2).flatten()
         return self.tokenizer.decode(list(tgt_tokens.cpu().numpy()), skip_special_tokens=True)
