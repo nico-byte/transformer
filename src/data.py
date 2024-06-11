@@ -6,14 +6,13 @@ from src.pretrained_inference import mt_batch_inference
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer
 import torchtext
 torchtext.disable_torchtext_deprecation_warning()
 from tokenizers import Tokenizer
 
 from torchtext.datasets import Multi30k
 from datasets import load_dataset
-from utils.config import DataLoaderConfig, TokenizerConfig, SharedConfig
+from utils.config import DataLoaderConfig, SharedConfig
 from tokenizer.wordpiece_tokenizer import build_tokenizer as build_wordpiece_tokenizer
 from tokenizer.unigram_tokenizer import build_tokenizer as build_unigram_tokenizer
 
@@ -22,15 +21,15 @@ torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_uti
 
 
 class BaseDataLoader(metaclass=abc.ABCMeta):
-    def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig):
+    def __init__(self, dl_config: DataLoaderConfig, shared_config: SharedConfig):
         self.batch_size: int = dl_config.batch_size
         self.num_workers: int = dl_config.num_workers
         self.pin_memory: bool = dl_config.pin_memory
         self.drop_last: bool = dl_config.drop_last
         self.shuffle: bool = dl_config.shuffle
         self.tokenizer = None
-        self.src_language: str = tkn_config.src_language
-        self.tgt_language: str = tkn_config.tgt_language
+        self.src_language: str = shared_config.src_language
+        self.tgt_language: str = shared_config.tgt_language
         self.special_symbols: List[str] = shared_config.special_symbols
         
         self.train_dataset, self.val_dataset, self.test_dataset = [], [], []
@@ -77,21 +76,21 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
             tgt_batch.append(tensor_tgt_sample)
 
 
-        src_batch = nn.utils.rnn.pad_sequence(src_batch, padding_value=self.tokenizer.token_to_id("<pad>"))
-        tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, padding_value=self.tokenizer.token_to_id("<pad>"))
+        src_batch = nn.utils.rnn.pad_sequence(src_batch, padding_value=3)
+        tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, padding_value=3)
 
         return src_batch, tgt_batch
     
-    def backtranslate_dataset(self, whole_dataset: List[Tuple[str, str]], tgt_dataset: List[str]):
+    def backtranslate_dataset(self):
+        tgt_dataset = [x[1] for x in self.train_dataset]
+        
         backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 512, self.logger)
         
         backtrans_dataset_pairs = [[x, y] for x, y in zip(backtrans_dataset, tgt_dataset)]
         
-        new_dataset = whole_dataset + backtrans_dataset_pairs
-        clean_dataset = self.clean_dataset(new_dataset)
-                
-        return clean_dataset
-    
+        new_dataset = self.train_dataset + backtrans_dataset_pairs
+        self.train_dataset = self.clean_dataset(new_dataset)
+        
     def clean_dataset(self, dataset: List[Tuple[str, str]]):
         src_dataset = [x[0] for x in dataset]
         tgt_dataset = [x[1] for x in dataset]
@@ -125,8 +124,8 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
 
 class IWSLT2017DataLoader(BaseDataLoader):
-    def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
-        super().__init__(dl_config, tkn_config, shared_config)
+    def __init__(self, dl_config: DataLoaderConfig, shared_config: SharedConfig):
+        super().__init__(dl_config, shared_config)
         
         self.dataset = load_dataset("iwslt2017", f'iwslt2017-{self.src_language}-{self.tgt_language}', cache_dir='./.data/iwslt2017')
             
@@ -134,8 +133,8 @@ class IWSLT2017DataLoader(BaseDataLoader):
         self.logger.info('Datasets have been loaded.')
         
     @classmethod
-    def build_with_tokenizer(cls, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str):
-        dataloader = cls(dl_config, tkn_config, shared_config)
+    def build_with_tokenizer(cls, dl_config: DataLoaderConfig, shared_config: SharedConfig, tokenizer: str):
+        dataloader = cls(dl_config, shared_config)
         
         dataloader.tokenizer = Tokenizer.from_file(tokenizer)
 
@@ -145,13 +144,11 @@ class IWSLT2017DataLoader(BaseDataLoader):
         return dataloader
         
     @classmethod
-    def new_instance(cls, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
-        dataloader = cls(dl_config, tkn_config, shared_config, tokenizer)
+    def new_instance(cls, dl_config: DataLoaderConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
+        dataloader = cls(dl_config, shared_config)
     
-        dataloader.train_tokenizer()
+        super().train_tokenizer(dataloader, shared_config.run_id, 3280, tokenizer)
         
-        dataloader.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
-
         super().build_dataloaders(dataloader)
         dataloader.logger.info('Dataloaders have been built.')
         
@@ -171,18 +168,35 @@ class IWSLT2017DataLoader(BaseDataLoader):
 
 
 class Multi30kDataLoader(BaseDataLoader):
-    def __init__(self, dl_config: DataLoaderConfig, tkn_config: TokenizerConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
-        super().__init__(dl_config, tkn_config, shared_config)
+    def __init__(self, dl_config: DataLoaderConfig, shared_config: SharedConfig):
+        super().__init__(dl_config, shared_config)
 
         self.build_datasets()
         self.logger.info('Datasets have benn loaded.')
         
-        self.train_tokenizer()
+    @classmethod
+    def build_with_tokenizer(cls, dl_config: DataLoaderConfig, shared_config: SharedConfig, tokenizer: str):
+        dataloader = cls(dl_config, shared_config)
         
-        self.tokenizer.save_pretrained(f"./models/{shared_config.run_id}/tokenizer")
+        dataloader.tokenizer = Tokenizer.from_file(tokenizer)
 
-        super().build_dataloaders()
-        self.logger.info('Dataloaders have been built.')
+        super().build_dataloaders(dataloader)
+        dataloader.logger.info('Dataloaders have been built.')
+        
+        return dataloader
+        
+    @classmethod
+    def new_instance(cls, dl_config: DataLoaderConfig, shared_config: SharedConfig, tokenizer: str="wordpiece"):
+        dataloader = cls(dl_config, shared_config)
+    
+        super().train_tokenizer(dataloader, shared_config.run_id, 1640, tokenizer)
+        
+        super().backtranslate_dataset(dataloader)
+        
+        super().build_dataloaders(dataloader)
+        dataloader.logger.info('Dataloaders have been built.')
+        
+        return dataloader
         
     def build_datasets(self):
         self.train_dataset: List[str, str] = list(Multi30k(root='./.data/multi30k', split='train',
@@ -197,9 +211,6 @@ class Multi30kDataLoader(BaseDataLoader):
         
         self.val_dataset: List[str, str] = [self.train_dataset[i] for i in val_indices]
         self.train_dataset = [entry for i, entry in enumerate(self.train_dataset) if i not in val_indices]
-        
-        tgt_train_dataset = [x[1] for x in self.train_dataset]
-        self.train_dataset = self.backtranslate_dataset(self.train_dataset, tgt_train_dataset)
         
         self.logger.debug("First Entry train dataset: %s", list(self.train_dataset[0]))
         self.logger.debug("Length train dataset: %f", len(self.train_dataset))

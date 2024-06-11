@@ -6,14 +6,14 @@ dataloader:
   drop_last: False
   shuffle: True
 transformer:
-  num_encoder_layers: 6
-  num_decoder_layers: 6
-  emb_size: 512
-  nhead: 8
-  dim_feedforward: 2048
-  dropout: 0.1
+  num_encoder_layers: 3
+  num_decoder_layers: 3
+  emb_size: 256
+  nhead: 4
+  dim_feedforward: 1024
+  dropout: 0.14
 trainer:
-  learning_rate: 0.0001
-  num_epochs: 25
+  learning_rate: 0.0005
+  num_epochs: 35
   tgt_batch_size: 256
-  warmup_steps: 250
+  warmup_steps: 600

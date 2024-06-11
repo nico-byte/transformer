@@ -26,14 +26,13 @@ def build_tokenizer(run_id: str, src_dataset: List[str], tgt_dataset: List[str],
     )
 
     # Combine the source and target datasets
-    # combined_dataset = src_dataset + tgt_dataset
+    combined_dataset = src_dataset + tgt_dataset
 
     # Shuffle the combined dataset to ensure a balanced representation
-    # random.shuffle(combined_dataset)
+    random.shuffle(combined_dataset)
 
     # Train the tokenizer on the combined dataset
-    # tokenizer.train_from_iterator(batch_iterator(tgt_dataset), trainer=trainer, length=len(combined_dataset))
-    tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(src_dataset))
+    tokenizer.train_from_iterator(batch_iterator(combined_dataset), trainer=trainer, length=len(combined_dataset))
 
     if not os.path.exists(f'./models/{run_id}/'):
         os.makedirs(f'./models/{run_id}/')

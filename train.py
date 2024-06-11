@@ -4,18 +4,14 @@ import yaml
 import argparse
 import os
 import sys
-# import nltk
 
 from src.data import IWSLT2017DataLoader, Multi30kDataLoader
 from utils.logger import get_logger
 from src.transformer import Seq2SeqTransformer
 from src.trainer import Trainer, EarlyStopper
-from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
+from utils.config import SharedConfig, DataLoaderConfig, TransformerConfig, TrainerConfig
 from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
-
-# if not os.path.exists('./.nltk_data'):
-#       nltk.download("wordnet", download_dir='./.nltk')
 
 
 def parsing_args():
@@ -41,21 +37,18 @@ def main(args):
       
       with open(path_to_config) as stream:
             config = yaml.safe_load(stream)
-      
-      tkn_conf = TokenizerConfig()
-
 
       shared_conf = SharedConfig(run_id=run_id)
       dl_conf = DataLoaderConfig(**config['dataloader'])
 
       if dl_conf.dataset == "iwslt2017":
-            dataloader = IWSLT2017DataLoader(dl_conf, tkn_conf, shared_conf)
+            dataloader = IWSLT2017DataLoader.new_instance(dl_conf, shared_conf)
       else:
-            dataloader = Multi30kDataLoader(dl_conf, tkn_conf, shared_conf)
+            dataloader = Multi30kDataLoader.new_instance(dl_conf, shared_conf)
             
       train_dataloader, test_dataloader, val_dataloader, tokenizer = dataloader.train_dataloader, dataloader.test_dataloader, dataloader.val_dataloader, dataloader.tokenizer
             
-      SRC_VOCAB_SIZE, TGT_VOCAB_SIZE = tokenizer.vocab_size, tokenizer.vocab_size
+      SRC_VOCAB_SIZE, TGT_VOCAB_SIZE = tokenizer.get_vocab_size(), tokenizer.get_vocab_size()
             
 
       model_conf = TransformerConfig(
@@ -65,7 +58,7 @@ def main(args):
       )
 
       transformer = Seq2SeqTransformer(model_conf)
-      translator = Processor(transformer, device, shared_conf.special_symbols)
+      translator = Processor.from_instance(transformer, tokenizer, device)
 
       trainer_conf = TrainerConfig(
             **config['trainer'],
@@ -74,7 +67,7 @@ def main(args):
       )
       summary(transformer, [(256, dl_conf.batch_size), (256, dl_conf.batch_size), 
                             (256, 256), (256, 256), 
-                            (dl_conf.batch_size, 256), (dl_conf.batch_size, 256)], depth=4)
+                            (dl_conf.batch_size, 256), (dl_conf.batch_size, 256)], depth=3)
 
       early_stopper = EarlyStopper(warmup=17, patience=7, min_delta=0)
 

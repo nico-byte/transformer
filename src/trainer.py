@@ -98,7 +98,7 @@ class Trainer():
         trainer.run_id = run_id
         
                 
-        trainer.criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
+        trainer.criterion = nn.CrossEntropyLoss(ignore_index=3)
         trainer.optim = torch.optim.Adam(trainer.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
                                        betas=(0.9, 0.98), 
@@ -112,8 +112,8 @@ class Trainer():
         trainer.grad_accum = trainer_config.tgt_batch_size > trainer_config.batch_size
 
         if trainer.grad_accum:
-            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders[0].batch_size \
-                if trainer_config.tgt_batch_size > trainer.dataloaders[0].batch_size else 1
+            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders['train'].batch_size \
+                if trainer_config.tgt_batch_size > trainer.dataloaders['train'].batch_size else 1
                 
         return trainer
     
@@ -147,14 +147,15 @@ class Trainer():
             tgt = tgt.type(torch.LongTensor)
             src = src.to(self.device)
             tgt = tgt.to(self.device)
-            
+
             tgt_input = tgt[:-1, :]
             src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
+
             with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                 logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
                 tgt_out = tgt[1:, :]
                 loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
-
+                            
             self.scaler.scale(loss).backward()
                         
             if self.grad_accum and (batch_idx + 1) % self.accumulation_steps == 0:
@@ -214,10 +215,10 @@ class Trainer():
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
-                
+
                 tgt_input = tgt[:-1, :]
                 src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
-                
+
                 if inference:
                     with torch.no_grad():
                         logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
@@ -231,11 +232,6 @@ class Trainer():
                 
                 all_preds = self.tokenizer.decode_batch(predictions)
                 all_targets = self.tokenizer.decode_batch(targets)
-                
-                print(src.T[0])
-                print(tgt.T[0])
-                print(all_preds[0])
-                print(all_targets[0])
                 
                 bleu_score = bleu.compute(predictions=all_preds, references=all_targets)
                 avg_bleu += bleu_score['bleu']

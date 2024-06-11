@@ -1,9 +1,10 @@
 import warnings
 import argparse
 from evaluate import load as load_metric
+import json
 
-from src.data import IWSLT2017DataLoader, Multi30kDataLoader
-from utils.config import SharedConfig, TokenizerConfig, DataLoaderConfig
+from src.data import IWSLT2017DataLoader
+from utils.config import SharedConfig, DataLoaderConfig
 from src.processor import Processor
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -20,17 +21,11 @@ def main(args):
       path_to_checkpoint = args.path_to_checkpoint
       path_to_tokenizer = args.path_to_tokenizer
       device = args.torch_device
-            
-      tkn_conf = TokenizerConfig()
-
 
       shared_conf = SharedConfig()
       dl_conf = DataLoaderConfig()
 
-      if dl_conf.dataset == "iwslt2017":
-            dataloader = IWSLT2017DataLoader.build_with_tokenizer(dl_conf, tkn_conf, shared_conf, path_to_tokenizer)
-      else:
-            dataloader = Multi30kDataLoader(dl_conf, tkn_conf, shared_conf)
+      dataloader = IWSLT2017DataLoader(dl_conf, shared_conf)
             
       val_dataset = dataloader.val_dataset
                   
@@ -46,7 +41,7 @@ def main(args):
       outputs = []
       sources = [x[0] for x in val_dataset]
       targets = [x[1] for x in val_dataset]
-      
+            
       for idx, src in enumerate(sources):
             output = translator.translate(src)
             
@@ -61,6 +56,15 @@ def main(args):
       rouge_score = rouge.compute(predictions=outputs, references=targets)
       
       meteor_score = meteor.compute(predictions=outputs, references=targets)
+      
+      metrics = {'bleu': bleu_score,
+                 'sacre_bleu': sacre_bleu_score, 
+                 'rouge': rouge_score, 
+                 'meteor': meteor_score}
+      
+      # Convert and write JSON object to file
+      with open(f"./{shared_conf.src_language}-{shared_conf.tgt_language}-metrics.json", "x") as outfile: 
+            json.dump(metrics, outfile, indent=4)
                                       
       print(f'\n\nEvaluation: bleu_score - {bleu_score}\nEvaluation: rouge_score - {rouge_score}\nEvaluation: sacre_bleu_score - {sacre_bleu_score}\nEvaluation: meteor_score - {meteor_score}')
       
