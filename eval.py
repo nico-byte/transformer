@@ -63,7 +63,7 @@ def main(args):
                  'meteor': meteor_score}
       
       # Convert and write JSON object to file
-      with open(f"./{shared_conf.src_language}-{shared_conf.tgt_language}-metrics.json", "x") as outfile: 
+      with open(f"./{shared_conf.src_language}test-{shared_conf.tgt_language}-metrics.json", "x") as outfile: 
             json.dump(metrics, outfile, indent=4)
                                       
       print(f'\n\nEvaluation: bleu_score - {bleu_score}\nEvaluation: rouge_score - {rouge_score}\nEvaluation: sacre_bleu_score - {sacre_bleu_score}\nEvaluation: meteor_score - {meteor_score}')
