@@ -69,8 +69,8 @@ class Processor():
 
             ys = torch.cat([ys,
                         torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0)
-            if next_word == eos_token_id:
-                break
+            # if next_word == eos_token_id:
+                # break
         return ys
 
     def translate(self, src_sentence: str) -> str:

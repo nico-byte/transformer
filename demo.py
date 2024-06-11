@@ -1,6 +1,7 @@
 import gradio as gr
 import os
 import shutil
+from src.processor import Processor
 from src.translate import check_device, translate_sequence_from_checkpoint
 from src.pretrained_inference import get_base_model, t5_inference
 
@@ -16,7 +17,7 @@ class ModelConfig:
         tokenizer (str): The tokenizer to be used for T5 model translation.
     """
 
-    def __init__(self, model=None, custom_tokenizer=None, tokenizer=None):
+    def __init__(self):
         """
         Initialize the ModelConfig class.
 
@@ -26,9 +27,9 @@ class ModelConfig:
             tokenizer (str): The tokenizer to be used for T5 model translation.
         """
 
-        self.model = model
-        self.custom_tokenizer = custom_tokenizer
-        self.tokenizer = tokenizer
+        self.t5_model = None
+        self.t5_tokenizer = None
+        self.custom_translator = None
         
     def set_t5_model(self):
         """
@@ -37,11 +38,11 @@ class ModelConfig:
         Returns:
             str: A message indicating whether the T5 model was successfully loaded.
         """
-
         try:
             tokenizer, model = get_base_model(device)
-            self.model, self.tokenizer, self.custom_tokenizer = model, tokenizer, None
-            return f"T5 Model loaded: {self.model}, {self.tokenizer}"
+            self.t5_model, self.t5_tokenizer = model, tokenizer
+            self.custom_translator = None
+            return f"T5 Model loaded: {self.t5_model}, {self.t5_tokenizer}"
         except RuntimeError as e:
             print(e)
             return "Something went wrong!"
@@ -57,16 +58,15 @@ class ModelConfig:
         Returns:
             str: A message indicating whether the custom model was successfully loaded.
         """
-
         if not isinstance(model, gr.utils.NamedString) or not isinstance(tokenizer, gr.utils.NamedString):
             return f"Please provide a model and tokenizer, {model}; {tokenizer}"
-        model = self.process_file(model)
-        tokenizer = self.process_file(tokenizer)
         try:
-            self.model, self.custom_tokenizer, self.tokenizer = model, tokenizer, None
-            return f"Custom Model loaded: {self.model}, {self.tokenizer}"
+            self.custom_translator = Processor.from_checkpoint(model, tokenizer, device)
+            self.t5_model, self.t5_tokenizer = None, None
+            return f"Custom Model loaded: {self.custom_translator}"
         except RuntimeError as e:
-            return e
+            print(e)
+            return "Something went wrong!"
         
     @staticmethod
     def process_file(fileobj):
@@ -94,7 +94,7 @@ class ModelConfig:
         """
 
         try:
-            output = t5_inference(self.tokenizer, self.model, sequence, device)
+            output = t5_inference(self.t5_tokenizer, self.t5_model, sequence, device)
             return output
         except RuntimeError as e:
             return e
@@ -111,7 +111,7 @@ class ModelConfig:
         """
 
         try:
-            output = translate_sequence_from_checkpoint(self.model, self.custom_tokenizer, sequence, device)
+            output = self.custom_translator.translate(sequence)
             return output
         except RuntimeError as e:
             return e
@@ -127,10 +127,10 @@ class ModelConfig:
             str: The translated sequence.
         """
 
-        if self.custom_tokenizer is not None:
-            return self._translate_custom(sequence)
-        elif self.tokenizer is not None:
+        if self.t5_tokenizer and self.t5_model is not None:
             return self._translate_t5(sequence)
+        elif self.custom_translator is not None:
+            return self._translate_custom(sequence)
         else:
             return 'Load the model first!'
 
