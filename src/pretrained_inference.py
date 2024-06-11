@@ -1,4 +1,5 @@
 from transformers import T5Tokenizer, T5ForConditionalGeneration, MarianMTModel, MarianTokenizer
+from torch.cuda.amp import autocast
 
 
 def get_base_model(device):
@@ -40,19 +41,7 @@ def t5_inference(tokenizer, model, sequence, device):
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-def mt_batch_inference(sequences, device, batch_size=1):
-    """
-    Perform batch inference for machine translation using a MarianMTModel.
-
-    Args:
-        sequences: Input sequences to translate.
-        device: Device to run the model on.
-        batch_size: Batch size for inference. Defaults to 1.
-
-    Returns:
-        List[str]: Translated sequences.
-    """
-
+def mt_batch_inference(sequences, device, batch_size, logger):
     tokenizer = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-de-en")
     model = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-de-en").to(device)
     
@@ -61,9 +50,13 @@ def mt_batch_inference(sequences, device, batch_size=1):
         sequences = [sequences]
         
     outputs = []
-    for i in range(0, len(sequences), batch_size):
-        print("Augmenting batch", i)
-        translations = model.generate(**tokenizer(sequences[i:i+batch_size], return_tensors="pt", padding=True).to(device))
-        outputs += tokenizer.batch_decode(translations, skip_special_tokens=True)
+    with autocast():
+        for i in range(0, len(sequences), batch_size):
+            logger.info(f"Backtranslating batch: {(int(i/batch_size))+1}/{(len(sequences)//batch_size)+1}")
+        
+            with autocast():
+                translations = model.generate(**tokenizer(sequences[i:i+batch_size], return_tensors="pt", padding=True).to(device))
+        
+            outputs += tokenizer.batch_decode(translations, skip_special_tokens=True)
 
     return outputs

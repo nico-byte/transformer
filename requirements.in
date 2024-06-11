@@ -15,5 +15,6 @@ transformers==4.41.0
 sentencepiece==0.2.0
 gradio>=4.0.0
 jupyter
-lion-pytorch
-nltk
+evaluate
+rouge_score
+sacrebleu

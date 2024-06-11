@@ -1,43 +1,28 @@
 import torch
 from torch import Tensor
+import tokenizers
 
 
 class Processor():
-    """
-    Processor class for performing translation using a Transformer model.
+    @classmethod
+    def from_instance(cls, model, tokenizer, device):
+        processor = cls()
+        
+        processor.model = model
+        processor.tokenizer = tokenizer
+        processor.device = device
+        
+        return processor
+        
+    @classmethod
+    def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+        processor = cls()
 
-    Args:
-        model (nn.Module): The Transformer model.
-        device (torch.device): The device to run the model on.
-        special_symbols (List[str]): List of special symbols used in the tokenizer.
-
-    Methods:
-        generate_square_subsequent_mask(sz: int) -> torch.Tensor:
-            Generate a square subsequent mask of size sz x sz.
-
-        create_mask(src: Tensor, tgt: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-            Create masks for source and target sequences.
-
-        greedy_decode(src: Tensor, src_mask: Tensor, max_len: int, start_symbol: str, special_symbols: List[str]) -> Tensor:
-            Perform greedy decoding for translation.
-
-        translate(src_sentence: str, tokenizer, special_symbols: List[str]) -> str:
-            Translate a source sentence to the target language.
-    """
-
-    def __init__(self, model, device, special_symbols):
-        """
-        Initialize the Processor.
-
-        Args:
-            model (nn.Module): The Transformer model.
-            device (torch.device): The device to run the model on.
-            special_symbols (List[str]): List of special symbols used in the tokenizer.
-        """
-
-        self.model = model
-        self.device = device
-        self.special_symbols = special_symbols
+        processor.model = torch.jit.load(model_checkpoint, map_location=device)
+        processor.tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
+        processor.device = device
+        
+        return processor
     
     def generate_square_subsequent_mask(self, sz):
         """
@@ -55,48 +40,23 @@ class Processor():
         return mask
 
 
-    def create_mask(self, src: Tensor, tgt: Tensor):
-        """
-        Create masks for source and target sequences.
-
-        Args:
-            src (Tensor): Source sequence.
-            tgt (Tensor): Target sequence.
-
-        Returns:
-            Tuple[Tensor, Tensor, Tensor, Tensor]: Source mask, target mask, source padding mask, target padding mask.
-        """
-
+    def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int=58100):
         src_seq_len = src.shape[0]
         tgt_seq_len = tgt.shape[0]
 
         tgt_mask = self.generate_square_subsequent_mask(tgt_seq_len)
         src_mask = torch.zeros((src_seq_len, src_seq_len),device=self.device).type(torch.bool)
 
-        src_padding_mask = (src == self.special_symbols.index('<pad>')).transpose(0, 1)
-        tgt_padding_mask = (tgt == self.special_symbols.index('<pad>')).transpose(0, 1)
+        src_padding_mask = (src == pad_id).transpose(0, 1)
+        tgt_padding_mask = (tgt == pad_id).transpose(0, 1)
         return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
     
-    def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int, start_symbol: str, special_symbols) -> Tensor:
-        """
-        Perform greedy decoding for translation.
-
-        Args:
-            src (Tensor): Source sequence.
-            src_mask (Tensor): Source mask.
-            max_len (int): Maximum length of the decoded sequence.
-            start_symbol (str): Start symbol for decoding.
-            special_symbols (List[str]): List of special symbols.
-
-        Returns:
-            Tensor: Decoded sequence.
-        """
-
+    def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int, eos_token_id: int) -> Tensor:
         src = src.to(self.device)
         src_mask = src_mask.to(self.device)
 
         memory = self.model.encode(src, src_mask)
-        ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
+        ys = torch.ones(1, 1).type(torch.long).to(self.device)
         for _ in range(max_len-1):
             memory = memory.to(self.device)
             tgt_mask = (self.generate_square_subsequent_mask(ys.size(0))
@@ -109,29 +69,17 @@ class Processor():
 
             ys = torch.cat([ys,
                         torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0)
-            if next_word == special_symbols.index('<eos>'):
+            if next_word == eos_token_id:
                 break
         return ys
 
-    def translate(self, src_sentence: str, tokenizer, special_symbols) -> str:
-        """
-        Translate a source sentence to the target language.
-
-        Args:
-            src_sentence (str): Source sentence.
-            tokenizer: Tokenizer for the source and target languages.
-            special_symbols (List[str]): List of special symbols.
-
-        Returns:
-            str: Translated sentence.
-        """
-
+    def translate(self, src_sentence: str) -> str:
         self.model.eval()
-        src = torch.tensor(tokenizer.encode(src_sentence).ids).view(-1, 1)
+        encoded_src = self.tokenizer.encode(src_sentence).ids
+        src = torch.tensor(encoded_src).view(-1, 1)
         num_tokens = src.shape[0]
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         with torch.no_grad():
-            tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 15,
-                                            start_symbol=special_symbols.index('<bos>'), 
-                                            special_symbols=special_symbols).flatten()
-        return tokenizer.decode(list(tgt_tokens.cpu().numpy()))
+            tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5,
+                                            eos_token_id=self.tokenizer.token_to_id("<eos>")).flatten()
+        return self.tokenizer.decode(list(tgt_tokens.cpu().numpy()), skip_special_tokens=True)

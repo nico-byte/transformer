@@ -9,24 +9,7 @@ import random
 torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = torch.utils._import_utils.dill_available()
 
 
-def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int):
-    """
-    Build and train a WordPiece tokenizer on the provided source dataset.
-
-    Args:
-        name (str): The name to save the tokenizer under.
-        run_id (str): The run identifier for saving the tokenizer.
-        src_dataset (List[str]): The source dataset for tokenization.
-        tgt_dataset (List[str]): The target dataset for tokenization (not used in current implementation).
-        vocab_size (int): The vocabulary size for the tokenizer.
-
-    Returns:
-        Tokenizer: The trained tokenizer.
-
-    The function trains a WordPiece tokenizer on the source dataset. The tokenizer is configured with normalization,
-    pre-tokenization, and post-processing steps, and is then saved to the specified directory under the given run ID.
-    """
-
+def build_tokenizer(run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int):
     tokenizer = Tokenizer(models.WordPiece(unk_token="<unk>"))
     tokenizer.normalizer = normalizers.NFKC()
     tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()
@@ -43,19 +26,18 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     )
 
     # Combine the source and target datasets
-    # combined_dataset = src_dataset + tgt_dataset
+    combined_dataset = src_dataset + tgt_dataset
 
     # Shuffle the combined dataset to ensure a balanced representation
-    # random.shuffle(combined_dataset)
+    random.shuffle(combined_dataset)
 
     # Train the tokenizer on the combined dataset
-    # tokenizer.train_from_iterator(batch_iterator(tgt_dataset), trainer=trainer, length=len(combined_dataset))
-    tokenizer.train_from_iterator(batch_iterator(src_dataset), trainer=trainer, length=len(src_dataset))
+    tokenizer.train_from_iterator(batch_iterator(combined_dataset), trainer=trainer, length=len(combined_dataset))
 
     if not os.path.exists(f'./models/{run_id}/'):
         os.makedirs(f'./models/{run_id}/')
 
-    tokenizer.save(f"./models/{run_id}/tokenizer-{name}.json")
+    tokenizer.save(f"./models/{run_id}/tokenizer.json")
     
     return tokenizer
 

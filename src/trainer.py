@@ -2,9 +2,10 @@ import sys
 
 import torch
 import torch.nn as nn
-from nltk.translate.meteor_score import meteor_score
+import tokenizers
+from evaluate import load as load_metric
 from src.transformer import Seq2SeqTransformer
-from utils.config import TrainerConfig, SharedConfig
+from utils.config import TrainerConfig
 from time import perf_counter
 from utils.logger import get_logger
 
@@ -103,95 +104,86 @@ class EarlyStopper:
 
 
 class Trainer():
-    """
-    Class for training a sequence-to-sequence transformer model.
-    """
-
-    def __init__(self,
-                 model: Seq2SeqTransformer,
-                 translator,
-                 train_dataloader,
-                 test_dataloader,
-                 val_dataloader,
-                 tokenizer,
-                 early_stopper: EarlyStopper,
-                 trainer_config: TrainerConfig,
-                 shared_config: SharedConfig,
-                 run_id: str,
-                 device):
-        """
-        Initialize the trainer.
-
-        Args:
-            model (Seq2SeqTransformer): The sequence-to-sequence transformer model.
-            translator: The translator object.
-            train_dataloader: The training dataloader.
-            test_dataloader: The test dataloader.
-            val_dataloader: The validation dataloader.
-            tokenizer: The tokenizer.
-            early_stopper (EarlyStopper): The early stopper object.
-            trainer_config (TrainerConfig): The trainer configuration.
-            shared_config (SharedConfig): The shared configuration.
-            run_id (str): The ID for this training run.
-            device: The device to run the training on.
-        """        
-
+    def __init__(self, device):
         self.logger = get_logger('Trainer')
+        
+        self.device = device
         
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+        self.dataloaders = {}
+                
+    @classmethod
+    def new_instance(cls, 
+                     model: Seq2SeqTransformer, 
+                     translator, 
+                     train_dataloader, 
+                     test_dataloader, 
+                     val_dataloader, 
+                     tokenizer, 
+                     early_stopper, 
+                     trainer_config, 
+                     device, 
+                     run_id):
+        trainer = cls(device)
         
-        self.model = model.to(device)
-        self.translator = translator
+        trainer.model = model.to(device)
+        trainer.translator = translator
         
-        self.num_epochs = trainer_config.num_epochs
+        trainer.num_epochs = trainer_config.num_epochs
         
-        self.current_epoch = 1
+        trainer.dataloaders['train'] = train_dataloader
+        trainer.dataloaders['test'] = test_dataloader
+        trainer.dataloaders['val'] = val_dataloader
         
-        self.dataloaders = [train_dataloader, test_dataloader, val_dataloader]
-        self.tokenizer = tokenizer
-        self.early_stopper = early_stopper
         
-        self.run_id = run_id
+        trainer.current_epoch = 1
+        trainer.tokenizer = tokenizer
+        trainer.early_stopper = early_stopper
+        
+        trainer.run_id = run_id
         
                 
-        self.criterion = nn.CrossEntropyLoss(ignore_index=shared_config.special_symbols.index('<pad>'))
-        self.optim = torch.optim.AdamW(self.model.parameters(), 
+        trainer.criterion = nn.CrossEntropyLoss(ignore_index=3)
+        trainer.optim = torch.optim.Adam(trainer.model.parameters(), 
                                        lr=trainer_config.learning_rate, 
-                                       amsgrad=True)
+                                       betas=(0.9, 0.98), 
+                                       eps=10e-9)
         
-        self.scheduler = InverseSquareRootLRScheduler(optimizer=self.optim, 
+        trainer.scheduler = InverseSquareRootLRScheduler(optimizer=trainer.optim, 
                                                       init_lr=2e-6, 
                                                       max_lr=trainer_config.learning_rate, 
                                                       n_warmup_steps=trainer_config.warmup_steps)
         
-        self.device = device
-        self.grad_accum: bool = trainer_config.tgt_batch_size > trainer_config.batch_size
+        trainer.grad_accum = trainer_config.tgt_batch_size > trainer_config.batch_size
 
-        if self.grad_accum:
-            self.accumulation_steps = trainer_config.tgt_batch_size // self.dataloaders[0].batch_size \
-                if trainer_config.tgt_batch_size > self.dataloaders[0].batch_size else 1
+        if trainer.grad_accum:
+            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders['train'].batch_size \
+                if trainer_config.tgt_batch_size > trainer.dataloaders['train'].batch_size else 1
                 
-    @classmethod
-    def continue_training(cls, *args, **kwargs):
-        """
-        Continue training from a checkpoint.
-
-        Returns:
-            NotImplementedError: Method not implemented.
-        """
-
-        return NotImplementedError
+        return trainer
     
     @classmethod
-    def from_pretrained(cls, *args, **kwargs):
-        """
-        Load a pre-trained model for training.
-
-        Returns:
-            NotImplementedError: Method not implemented.
-        """
-
+    def evaluate_checkpoint(cls, 
+                   checkpoint_path: str, 
+                   tokenizer_path: str, 
+                   val_dataloader: str, 
+                   translator,
+                   device):
+        trainer = cls(device)
+        
+        trainer.model = torch.jit.load(checkpoint_path, map_location=device)
+        trainer.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
+        trainer.translator = translator
+        
+        trainer.dataloaders['val'] = val_dataloader
+        
+        bleu, rouge = trainer.evaluate(inference=True)
+        
+        return bleu, rouge
+    
+    @classmethod
+    def continue_training(cls, *args, **kwargs):
         return NotImplementedError
 
     def _train_epoch(self) -> float:
@@ -204,18 +196,19 @@ class Trainer():
 
         self.model.train()
         losses = 0
-        for batch_idx, (src, tgt) in enumerate(self.dataloaders[0]):
+        for batch_idx, (src, tgt) in enumerate(self.dataloaders['train']):
             tgt = tgt.type(torch.LongTensor)
             src = src.to(self.device)
             tgt = tgt.to(self.device)
-            
+
             tgt_input = tgt[:-1, :]
             src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
+
             with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                 logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
                 tgt_out = tgt[1:, :]
                 loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
-
+                            
             self.scaler.scale(loss).backward()
                         
             if self.grad_accum and (batch_idx + 1) % self.accumulation_steps == 0:
@@ -237,7 +230,7 @@ class Trainer():
 
             losses += loss.item()
         
-        return losses / len(list(self.dataloaders[0]))
+        return losses / len(list(self.dataloaders['train']))
 
 
     def _test_epoch(self) -> float:
@@ -251,7 +244,7 @@ class Trainer():
         self.model.eval()
         losses = 0
         with torch.no_grad():
-            for src, tgt in self.dataloaders[1]:
+            for src, tgt in self.dataloaders['test']:
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
@@ -266,21 +259,19 @@ class Trainer():
                 
                 losses += loss.item()
 
-        return losses / len(list(self.dataloaders[1]))
+        return losses / len(list(self.dataloaders['test']))
 
 
-    def evaluate(self) -> float:
-        """
-        Evaluate the model.
-
-        Returns:
-            float: The average meteor score for the evaluation dataset.
-        """
-
+    def evaluate(self, inference: bool=False) -> float:
         self.model.eval()
-        avg_meteor = 0
+        avg_bleu = 0
+        avg_rouge = 0
+        bleu = load_metric("bleu")
+        rouge = load_metric("rouge")
+        
         with torch.no_grad():
-            for src, tgt in self.dataloaders[-1]:
+            for batch_idx, (src, tgt) in enumerate(self.dataloaders['val']):
+                self.logger.info(f'Evaluating batch {batch_idx+1}/{len(list(self.dataloaders['val']))}')
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
@@ -288,21 +279,30 @@ class Trainer():
                 tgt_input = tgt[:-1, :]
                 src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = self.translator.create_mask(src, tgt_input)
 
-                with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                    logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
-                
+                if inference:
+                    with torch.no_grad():
+                        logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
+                else:
+                    with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                        logits = self.model(src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask)
+                                
                 predictions = torch.argmax(logits, dim=-1)
-                predictions = torch.tensor(predictions.T).cpu().numpy().tolist()
+                predictions = predictions.T.cpu().numpy().tolist()
                 targets = tgt_input.T.cpu().numpy().tolist()
-
-                all_preds = [[token for token in self.tokenizer.encode(self.tokenizer.decode(pred)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for pred in predictions]
-                all_targets = [[token for token in self.tokenizer.encode(self.tokenizer.decode(tgt)).tokens if token not in ["<bos>", "<eos>", "<pad>"]] for tgt in targets]
                 
-                meteor = sum([meteor_score([all_targets[i]], preds) for i, preds in enumerate(all_preds) \
-                    if len(preds) != 0]) / len(all_targets)
-                avg_meteor += meteor
-
-        return avg_meteor / len(list(self.dataloaders[-1]))
+                all_preds = self.tokenizer.decode_batch(predictions)
+                all_targets = self.tokenizer.decode_batch(targets)
+                
+                bleu_score = bleu.compute(predictions=all_preds, references=all_targets)
+                avg_bleu += bleu_score['bleu']
+                                
+                rouge_score = rouge.compute(predictions=all_preds, references=all_targets)
+                avg_rouge += rouge_score['rougeLsum']
+                                
+        avg_bleu /= len(list(self.dataloaders['val']))
+        avg_rouge /= len(list(self.dataloaders['val']))
+        
+        return avg_bleu, avg_rouge
 
     def train(self):
         """

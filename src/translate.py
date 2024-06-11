@@ -1,7 +1,6 @@
 import torch
 import tokenizers
 from src.processor import Processor
-from utils.config import SharedConfig
 
 
 def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
@@ -19,17 +18,14 @@ def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
     """
 
     checkpoint = torch.jit.load(checkpoint, map_location=device)
-
-    shared_config = SharedConfig()
     
     tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
-    special_symbols = shared_config.special_symbols
         
-    translator = Processor(checkpoint, device, special_symbols)
+    translator = Processor(checkpoint, tokenizer, device)
     
-    output = translator.translate(sequence, tokenizer, special_symbols=special_symbols)
+    output = translator.translate(sequence)
     
-    return output    
+    return output
     
 
 def check_device(dvc=None):
