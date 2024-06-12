@@ -166,75 +166,114 @@ class Trainer():
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
         self.dataloaders = {}
-                
+
     @classmethod
-    def new_instance(cls, 
-                     model: Seq2SeqTransformer, 
-                     translator, 
-                     train_dataloader, 
-                     test_dataloader, 
-                     val_dataloader, 
-                     tokenizer, 
-                     early_stopper, 
-                     trainer_config, 
-                     device, 
-                     run_id):
+    def new_instance(
+        cls,
+        model: Seq2SeqTransformer,
+        translator,
+        train_dataloader,
+        test_dataloader,
+        val_dataloader,
+        tokenizer,
+        early_stopper,
+        trainer_config,
+        device,
+        run_id,
+    ):
+        """
+        Creates a new instance of the Trainer class with the provided configuration.
+    
+        Args:
+            model (Seq2SeqTransformer): The sequence-to-sequence transformer model.
+            translator: The translator object used for the model.
+            train_dataloader: The training data loader.
+            test_dataloader: The test data loader.
+            val_dataloader: The validation data loader.
+            tokenizer: The tokenizer used for the model.
+            early_stopper (EarlyStopper): The early stopping object.
+            trainer_config (TrainerConfig): The configuration for the trainer.
+            device (torch.device): The device to use for training.
+            run_id (str): The ID of the current training run.
+    
+        Returns:
+            Trainer: A new instance of the Trainer class with the provided configuration.
+        """
         trainer = cls(device)
-        
+
         trainer.model = model.to(device)
         trainer.translator = translator
-        
+
         trainer.num_epochs = trainer_config.num_epochs
-        
-        trainer.dataloaders['train'] = train_dataloader
-        trainer.dataloaders['test'] = test_dataloader
-        trainer.dataloaders['val'] = val_dataloader
-        
-        
+
+        trainer.dataloaders["train"] = train_dataloader
+        trainer.dataloaders["test"] = test_dataloader
+        trainer.dataloaders["val"] = val_dataloader
+
         trainer.current_epoch = 1
         trainer.tokenizer = tokenizer
         trainer.early_stopper = early_stopper
-        
+
         trainer.run_id = run_id
-        
-                
+
         trainer.criterion = nn.CrossEntropyLoss(ignore_index=3)
-        trainer.optim = torch.optim.Adam(trainer.model.parameters(), 
-                                       lr=trainer_config.learning_rate, 
-                                       betas=(0.9, 0.98), 
-                                       eps=10e-9)
-        
-        trainer.scheduler = InverseSquareRootLRScheduler(optimizer=trainer.optim, 
-                                                      init_lr=2e-6, 
-                                                      max_lr=trainer_config.learning_rate, 
-                                                      n_warmup_steps=trainer_config.warmup_steps)
+        trainer.optim = torch.optim.Adam(
+            trainer.model.parameters(),
+            lr=trainer_config.learning_rate,
+            betas=(0.9, 0.98),
+            eps=10e-9,
+        )
+
+        trainer.scheduler = InverseSquareRootLRScheduler(
+            optimizer=trainer.optim,
+            init_lr=2e-6,
+            max_lr=trainer_config.learning_rate,
+            n_warmup_steps=trainer_config.warmup_steps,
+        )
         trainer.learning_rate_values.append(2e-6)
         trainer.grad_accum = trainer_config.tgt_batch_size > trainer_config.batch_size
 
         if trainer.grad_accum:
-            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders['train'].batch_size
+            trainer.accumulation_steps = (
+                trainer_config.tgt_batch_size // trainer.dataloaders["train"].batch_size
+            )
         else:
             trainer.accumulation_steps = 1
-                
+
         return trainer
     
     @classmethod
-    def evaluate_checkpoint(cls, 
-                   checkpoint_path: str, 
-                   tokenizer_path: str, 
-                   val_dataloader: str, 
-                   translator,
-                   device):
+    def evaluate_checkpoint(
+        cls,
+        checkpoint_path: str,
+        tokenizer_path: str,
+        val_dataloader: str,
+        translator,
+        device,
+    ):
+        """
+        Evaluates a trained model checkpoint on the validation dataset.
+    
+        Args:
+        checkpoint_path (str): The path to the saved model checkpoint.
+        tokenizer_path (str): The path to the saved tokenizer.
+        val_dataloader (str): The validation data loader.
+        translator: The translator object used for the model.
+        device (torch.device): The device to use for evaluation.
+    
+        Returns:
+            Tuple[float, float]: The BLEU and ROUGE scores for the evaluated model.
+        """
         trainer = cls(device)
-        
+
         trainer.model = torch.jit.load(checkpoint_path, map_location=device)
         trainer.tokenizer = tokenizers.Tokenizer.from_file(tokenizer_path)
         trainer.translator = translator
-        
-        trainer.dataloaders['val'] = val_dataloader
-        
+
+        trainer.dataloaders["val"] = val_dataloader
+
         bleu, rouge = trainer.evaluate(inference=True)
-        
+
         return bleu, rouge
     
     @classmethod
@@ -315,6 +354,15 @@ class Trainer():
 
 
     def evaluate(self, inference: bool=False) -> float:
+        """
+        Evaluate the model on the validation set and compute the average BLEU and ROUGE scores.
+        
+        Args:
+            inference (bool, optional): If True, evaluate the model in inference mode without using autocast. Defaults to False.
+        
+        Returns:
+            Tuple[float, float]: The average BLEU and ROUGE scores on the validation set.
+        """
         self.model.eval()
         avg_bleu = 0
         avg_rouge = 0
@@ -447,29 +495,57 @@ class Trainer():
         self.logger.info(f'Model checkpoint have been loaded from {filepath}')
         
     def _plot(self):
-        # Plot learning rate
+        """
+        Plot the learning rate, training loss, and test loss metrics during training.
+        
+        This method creates three separate plots:
+        1. Learning Rate: Plots the learning rate values over the training steps, with a vertical line indicating the end of the warmup phase.
+        2. Training Loss: Plots the training loss values over the training steps, with a vertical line indicating the end of the warmup phase.
+        3. Test Loss: Plots the test loss values over the training epochs, with a vertical line indicating the end of the warmup phase.
+        
+        The plots are saved to the `./models/{self.run_id}/metrics/` directory.
+        """
+                # Plot the learning rate function
         plt.figure(figsize=(8, 6))
         plt.plot(self.learning_rate_values, label='Learning Rate')
         plt.xlabel('Step')
         plt.ylabel('Learning Rate')
+        plt.title('Learning Rate Scheduler')
+        plt.grid(True)
+
+        # Add vertical line at the end of warmup phase
+        plt.axvline(x=self.scheduler.n_warmup_steps, color='r', linestyle='--', label='Warmup End')
+
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/learning_rate.png')
         plt.clf()  # Clear the current figure
-
-        # Plot train and test loss
-        plt.figure(figsize=(8, 6))
+        
+        # Plot the learning rate function
+        plt.figure(figsize=(8, 6))        
         plt.plot(self.train_loss_values, label='Train Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
+        plt.title('Training loss vs. steps')
+        plt.grid(True)
+
+        # Add vertical line at the end of warmup phase
+        plt.axvline(x=self.scheduler.n_warmup_steps, color='r', linestyle='--', label='Warmup End')
+
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/train_loss.png')
         plt.clf()  # Clear the current figure
         
-        # Plot train and test loss
-        plt.figure(figsize=(8, 6))
+        # Plot the learning rate function
+        plt.figure(figsize=(8, 6))        
         plt.plot(self.test_loss_values, label='Test Loss')
-        plt.xlabel('Epoch')
+        plt.xlabel('Step')
         plt.ylabel('Loss')
+        plt.title('Test loss vs. epochs')
+        plt.grid(True)
+
+        # Add vertical line at the end of warmup phase
+        plt.axvline(x=self.scheduler.n_warmup_steps, color='r', linestyle='--', label='Warmup End')
+
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/test_loss.png')
         plt.clf()  # Clear the current figure
