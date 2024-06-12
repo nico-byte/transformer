@@ -11,3 +11,5 @@ nohup.out
 flagged
 .temps
 *.json
+*.png
+playground.py

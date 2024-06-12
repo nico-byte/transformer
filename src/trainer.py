@@ -3,6 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 import tokenizers
+import matplotlib.pyplot as plt
 from evaluate import load as load_metric
 from src.transformer import Seq2SeqTransformer
 from utils.config import TrainerConfig
@@ -44,6 +45,55 @@ class InverseSquareRootLRScheduler:
             self.lr = self.init_lr + self.n_steps * self.lr_step
         else:
             self.lr = self.decay_factor * self.n_steps**-0.5
+            
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.lr
+
+    def get_lr(self):
+        """
+        Get the current learning rate.
+        """
+
+        return self.optimizer.param_groups[0]['lr']
+    
+class LinearWarmupDecayLRScheduler:
+    """
+    Implements a learning rate scheduler with linear warmup and decay.
+    """
+
+    def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps, total_steps):
+        """
+        Initialize the scheduler.
+
+        Args:
+            optimizer: The optimizer to adjust the learning rate for.
+            init_lr (float): The initial learning rate.
+            max_lr (float): The maximum learning rate.
+            n_warmup_steps (int): The number of warmup steps.
+            total_steps (int): The total number of steps.
+        """
+
+        self.optimizer = optimizer
+        self.init_lr = init_lr
+        self.max_lr = max_lr
+        self.n_warmup_steps = n_warmup_steps
+        self.total_steps = total_steps
+        self.n_decay_steps = total_steps - n_warmup_steps
+        self.warmup_lr_step = (max_lr - init_lr) / n_warmup_steps
+        self.decay_lr_step = (self.decay_steps - (self.n_steps - self.n_warmup_steps))
+        self.n_steps = 0
+
+    def step(self):
+        """
+        Update the learning rate for the optimizer.
+        """
+
+        self.n_steps += 1
+                
+        if self.n_steps < self.n_warmup_steps:
+            self.lr = self.init_lr + self.n_steps * self.warmup_lr_step
+        else:
+            self.lr = (self.max_lr / self.n_decay_steps) * self.decay_lr_step
             
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.lr
@@ -109,6 +159,10 @@ class Trainer():
         
         self.device = device
         
+        self.train_loss_values = []
+        self.test_loss_values = []
+        self.learning_rate_values = []
+        
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
         self.dataloaders = {}
@@ -154,12 +208,13 @@ class Trainer():
                                                       init_lr=2e-6, 
                                                       max_lr=trainer_config.learning_rate, 
                                                       n_warmup_steps=trainer_config.warmup_steps)
-        
+        trainer.learning_rate_values.append(2e-6)
         trainer.grad_accum = trainer_config.tgt_batch_size > trainer_config.batch_size
 
         if trainer.grad_accum:
-            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders['train'].batch_size \
-                if trainer_config.tgt_batch_size > trainer.dataloaders['train'].batch_size else 1
+            trainer.accumulation_steps = trainer_config.tgt_batch_size // trainer.dataloaders['train'].batch_size
+        else:
+            trainer.accumulation_steps = 1
                 
         return trainer
     
@@ -210,23 +265,20 @@ class Trainer():
                 loss = self.criterion(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
                             
             self.scaler.scale(loss).backward()
-                        
-            if self.grad_accum and (batch_idx + 1) % self.accumulation_steps == 0:
+            
+            if self.grad_accum:
                 for param in self.model.parameters():
                     param.grad /= self.accumulation_steps
-
+            
+            if (batch_idx + 1) % self.accumulation_steps == 0:
                 self.scaler.step(self.optim)
                 self.scaler.update()
                 self.scheduler.step()
+                self.learning_rate_values.append(self.scheduler.get_lr())
                 # Reset gradients, for the next accumulated batches
                 for param in self.model.parameters():
                     param.grad = None
-            else:
-                self.scaler.step(self.optim)
-                self.scaler.update()
-                self.scheduler.step()
-                for param in self.model.parameters():
-                    param.grad = None   
+                self.train_loss_values.append(loss.item())
 
             losses += loss.item()
         
@@ -318,8 +370,12 @@ class Trainer():
                 start_time = perf_counter()
                 test_loss = self._test_epoch()
                 self.logger.info(f'epoch {epoch} avg_test_loss: {round(test_loss, 3)} ({round(perf_counter()-start_time, 3)}s)')
-
+                
+                self.test_loss_values.append(test_loss)
+                
                 self.current_epoch += 1
+                
+                self._plot()
                 
                 early_stop_true = self.early_stopper.early_stop(epoch, test_loss)
                 counter = self.early_stopper.counter
@@ -389,3 +445,31 @@ class Trainer():
         filepath = f'./models/{self.run_id}/checkpoint.pt'
         self.model = torch.jit.script(filepath)
         self.logger.info(f'Model checkpoint have been loaded from {filepath}')
+        
+    def _plot(self):
+        # Plot learning rate
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.learning_rate_values, label='Learning Rate')
+        plt.xlabel('Step')
+        plt.ylabel('Learning Rate')
+        plt.legend()
+        plt.savefig(f'./models/{self.run_id}/metrics/learning_rate.png')
+        plt.clf()  # Clear the current figure
+
+        # Plot train and test loss
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.train_loss_values, label='Train Loss')
+        plt.xlabel('Step')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.savefig(f'./models/{self.run_id}/metrics/train_loss.png')
+        plt.clf()  # Clear the current figure
+        
+        # Plot train and test loss
+        plt.figure(figsize=(8, 6))
+        plt.plot(self.test_loss_values, label='Test Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.savefig(f'./models/{self.run_id}/metrics/test_loss.png')
+        plt.clf()  # Clear the current figure
