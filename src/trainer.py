@@ -555,7 +555,7 @@ class Trainer():
         plt.plot(self.test_loss_steps, self.test_loss_values, label='Test Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
-        plt.title('Test loss vs. epochs')
+        plt.title('Test loss vs. steps')
         plt.grid(True)
 
         # Add vertical line at the end of warmup phase
