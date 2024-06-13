@@ -82,7 +82,6 @@ class LinearWarmupDecayLRScheduler:
         self.total_steps = total_steps
         self.n_decay_steps = total_steps - n_warmup_steps
         self.warmup_lr_step = (max_lr - init_lr) / n_warmup_steps
-        self.decay_lr_step = (self.n_decay_steps - (self.n_steps - self.n_warmup_steps))
 
     def step(self):
         """
@@ -94,7 +93,7 @@ class LinearWarmupDecayLRScheduler:
         if self.n_steps < self.n_warmup_steps:
             self.lr = self.init_lr + self.n_steps * self.warmup_lr_step
         else:
-            self.lr = (self.max_lr / self.n_decay_steps) * self.decay_lr_step
+            self.lr = self.max_lr / self.n_decay_steps * (self.n_decay_steps - (self.n_steps - self.n_warmup_steps))
             
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.lr
