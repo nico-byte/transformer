@@ -534,9 +534,9 @@ class Trainer():
         plt.clf()  # Clear the current figure
         
         # Plot the learning rate function
-        plt.figure(figsize=(8, 6))        
-        plt.plot(self._smooth(scalars=self.train_loss_values, weight=0.6), label='Smoothed Train Loss')
+        plt.figure(figsize=(8, 6))
         plt.plot(self.train_loss_values, label='Acutal Train Loss')
+        plt.plot(self._smooth(scalars=self.train_loss_values, weight=0.9), label='Smoothed Train Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
         plt.title('Training loss vs. steps')
