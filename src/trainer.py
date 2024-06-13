@@ -163,6 +163,7 @@ class Trainer():
         self.train_loss_values = []
         self.test_loss_values = []
         self.learning_rate_values = []
+        self.test_loss_steps = []
         
         self.use_amp = True
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
@@ -212,6 +213,7 @@ class Trainer():
         trainer.dataloaders["val"] = val_dataloader
 
         trainer.current_epoch = 1
+        trainer.step_size = int(len(list(trainer.dataloaders["train"])) / (trainer_config.tgt_batch_size / trainer_config.batch_size))
         trainer.tokenizer = tokenizer
         trainer.early_stopper = early_stopper
 
@@ -431,6 +433,7 @@ class Trainer():
                 self.logger.info(f'epoch {epoch} avg_test_loss: {round(test_loss, 3)} ({round(perf_counter()-start_time, 3)}s)')
                 
                 self.test_loss_values.append(test_loss)
+                self.test_loss_steps.append(self.current_epoch*self.step_size)
                 
                 self.current_epoch += 1
                 
@@ -549,7 +552,7 @@ class Trainer():
         
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))        
-        plt.plot(self.test_loss_values, label='Test Loss')
+        plt.plot(self.test_loss_steps, self.test_loss_values, label='Test Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
         plt.title('Test loss vs. epochs')
