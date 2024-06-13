@@ -60,9 +60,9 @@ def main(args):
             SystemExit: If the specified run ID already exists.
 
       """
-      path_to_config = args.path_to_config
-      run_id = args.run_id
-      device = args.torch_device
+      path_to_config: str = args.path_to_config
+      run_id: str = args.run_id
+      device: str = args.torch_device
       
       logger = get_logger("Main")
       
@@ -116,7 +116,7 @@ def main(args):
       print(f'\nEvaluation: bleu_score - {bleu}, rouge_score - {rouge}')
 
       TEST_SEQUENCE = "The quick brown fox jumped over the lazy dog and then ran away quickly."
-      output = translator.translate(TEST_SEQUENCE)
+      output: str = translator.translate(TEST_SEQUENCE)
       
       print(f'Input: {TEST_SEQUENCE}, Output: {output}')
       

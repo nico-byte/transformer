@@ -223,14 +223,24 @@ class Trainer():
             betas=(0.9, 0.98),
             eps=10e-9,
         )
-
+        """
         trainer.scheduler = InverseSquareRootLRScheduler(
             optimizer=trainer.optim,
             init_lr=2e-6,
             max_lr=trainer_config.learning_rate,
             n_warmup_steps=trainer_config.warmup_steps,
         )
-        trainer.learning_rate_values.append(2e-6)
+        """
+        total_steps = int(trainer.num_epochs * len(list(trainer.dataloaders["train"])) / (trainer_config.tgt_batch_size / trainer_config.batch_size))
+        init_lr = 2e-6
+        trainer.scheduler = LinearWarmupDecayLRScheduler(
+            trainer.optim,
+            init_lr=init_lr, 
+            max_lr=trainer_config.learning_rate, 
+            n_warmup_steps=trainer_config.warmup_steps, 
+            total_steps=total_steps
+        )
+        trainer.learning_rate_values.append(init_lr)
         trainer.grad_accum = trainer_config.tgt_batch_size > trainer_config.batch_size
 
         if trainer.grad_accum:
