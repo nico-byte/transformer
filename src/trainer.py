@@ -1,4 +1,5 @@
 import sys
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -532,7 +533,8 @@ class Trainer():
         
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))        
-        plt.plot(self.train_loss_values, label='Train Loss')
+        plt.plot(self._smooth(self.train_loss_values, 0.6), label='Smoothed Train Loss')
+        plt.plot(self.train_loss_values, label='Acutal Train Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
         plt.title('Training loss vs. steps')
@@ -559,3 +561,13 @@ class Trainer():
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/test_loss.png')
         plt.clf()  # Clear the current figure
+        
+    def _smooth(scalars: List[float], weight: float) -> List[float]:  # Weight between 0 and 1
+        last = scalars[0]  # First value in the plot (first timestep)
+        smoothed = list()
+        for point in scalars:
+            smoothed_val = last * weight + (1 - weight) * point  # Calculate smoothed value
+            smoothed.append(smoothed_val)                        # Save it
+            last = smoothed_val                                  # Anchor the last smoothed value
+        
+        return smoothed
