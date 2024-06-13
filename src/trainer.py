@@ -80,7 +80,7 @@ class LinearWarmupDecayLRScheduler:
         self.total_steps = total_steps
         self.n_decay_steps = total_steps - n_warmup_steps
         self.warmup_lr_step = (max_lr - init_lr) / n_warmup_steps
-        self.decay_lr_step = (self.decay_steps - (self.n_steps - self.n_warmup_steps))
+        self.decay_lr_step = (self.n_decay_steps - (self.n_steps - self.n_warmup_steps))
         self.n_steps = 0
 
     def step(self):
