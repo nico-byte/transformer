@@ -533,7 +533,7 @@ class Trainer():
         
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))        
-        plt.plot(self._smooth(self.train_loss_values, 0.6), label='Smoothed Train Loss')
+        plt.plot(self._smooth(scalars=self.train_loss_values, weight=0.6), label='Smoothed Train Loss')
         plt.plot(self.train_loss_values, label='Acutal Train Loss')
         plt.xlabel('Step')
         plt.ylabel('Loss')
@@ -562,6 +562,7 @@ class Trainer():
         plt.savefig(f'./models/{self.run_id}/metrics/test_loss.png')
         plt.clf()  # Clear the current figure
         
+    @staticmethod
     def _smooth(scalars: List[float], weight: float) -> List[float]:  # Weight between 0 and 1
         last = scalars[0]  # First value in the plot (first timestep)
         smoothed = list()
