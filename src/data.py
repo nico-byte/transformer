@@ -197,7 +197,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
     @staticmethod
     def batch_iterator(
-        dataset: Tuple[List[str, str]], batch_size: int = 1000
+        dataset: List[Tuple[str, str]], batch_size: int = 1000
         ):
         """
         Generates batches of the given dataset.
