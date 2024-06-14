@@ -382,6 +382,7 @@ class Multi30kDataLoader(BaseDataLoader):
         cls,
         dl_config: DataLoaderConfig,
         shared_config: SharedConfig,
+        back_translate: bool = True,
         tokenizer: str = "wordpiece",
         ):
         """
@@ -401,7 +402,8 @@ class Multi30kDataLoader(BaseDataLoader):
 
         super().train_tokenizer(dataloader, shared_config.run_id, 1640, tokenizer)
 
-        super().backtranslate_dataset(dataloader)
+        if back_translate:
+            super().backtranslate_dataset(dataloader)
 
         super().build_dataloaders(dataloader)
         dataloader.logger.info("Dataloaders have been built.")
