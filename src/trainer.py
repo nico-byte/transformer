@@ -383,7 +383,7 @@ class Trainer():
         
         with torch.no_grad():
             for batch_idx, (src, tgt) in enumerate(self.dataloaders['val']):
-                self.logger.info(f'Evaluating batch {batch_idx+1}/{len(list(self.dataloaders['val']))}')
+                self.logger.info(f'Evaluating batch {batch_idx+1}/{len(list(self.dataloaders["val"]))}')
                 tgt = tgt.type(torch.LongTensor)
                 src = src.to(self.device)
                 tgt = tgt.to(self.device)
