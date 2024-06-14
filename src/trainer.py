@@ -531,7 +531,7 @@ class Trainer():
 
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/learning_rate.png')
-        plt.clf()  # Clear the current figure
+        plt.close()  # Clear the current figure
         
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))
@@ -547,7 +547,7 @@ class Trainer():
 
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/train_loss.png')
-        plt.clf()  # Clear the current figure
+        plt.close()  # Clear the current figure
         
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))        
@@ -562,7 +562,7 @@ class Trainer():
 
         plt.legend()
         plt.savefig(f'./models/{self.run_id}/metrics/test_loss.png')
-        plt.clf()  # Clear the current figure
+        plt.close()  # Clear the current figure
         
     @staticmethod
     def _smooth(scalars: List[float], weight: float) -> List[float]:  # Weight between 0 and 1
