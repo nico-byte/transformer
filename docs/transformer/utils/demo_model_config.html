@@ -88,6 +88,7 @@ class ModelConfig:
         ):
             return f&#34;Please provide a model and tokenizer, {model}; {tokenizer}&#34;
         try:
+            model, tokenizer = self.process_file(model), self.process_file(tokenizer)
             self.custom_translator = Processor.from_checkpoint(
                 model, tokenizer, self.device
             )
@@ -261,6 +262,7 @@ class ModelConfig:
         ):
             return f&#34;Please provide a model and tokenizer, {model}; {tokenizer}&#34;
         try:
+            model, tokenizer = self.process_file(model), self.process_file(tokenizer)
             self.custom_translator = Processor.from_checkpoint(
                 model, tokenizer, self.device
             )
@@ -414,6 +416,7 @@ def process_file(fileobj):
     ):
         return f&#34;Please provide a model and tokenizer, {model}; {tokenizer}&#34;
     try:
+        model, tokenizer = self.process_file(model), self.process_file(tokenizer)
         self.custom_translator = Processor.from_checkpoint(
             model, tokenizer, self.device
         )

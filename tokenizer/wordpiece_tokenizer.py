@@ -20,7 +20,24 @@ torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = (
 
 def build_tokenizer(
     run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int
-):
+) -> Tokenizer:
+    """
+    Build and train a tokenizer on the provided source and target datasets.
+
+    Args:
+        name (str): The name to save the tokenizer under.
+        run_id (str): The run identifier for saving the tokenizer.
+        src_dataset (List[str]): The source dataset for tokenization.
+        tgt_dataset (List[str]): The target dataset for tokenization.
+        vocab_size (int): The vocabulary size for the tokenizer.
+
+    Returns:
+        tokenizers.Tokenizer: The trained tokenizer.
+
+    The function combines the source and target datasets, shuffles them, and trains a wordpiece tokenizer.
+    The tokenizer is configured with normalization, pre-tokenization, and post-processing steps, and is then saved
+    to the specified directory under the given run ID.
+    """
     tokenizer = Tokenizer(models.WordPiece(unk_token="<unk>"))
     tokenizer.normalizer = normalizers.NFKC()
     tokenizer.pre_tokenizer = pre_tokenizers.Whitespace()

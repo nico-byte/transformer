@@ -26,21 +26,27 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from transformers import (
+<pre><code class="python">from typing import List, Tuple, Union
+import logging.config
+
+from transformers import (
     T5Tokenizer,
     T5ForConditionalGeneration,
     MarianMTModel,
     MarianTokenizer,
 )
 from torch.cuda.amp import autocast
+import torch
 
 
-def get_base_model(device):
+def get_base_model(
+    device: torch.device,
+) -&gt; Tuple[T5Tokenizer, T5ForConditionalGeneration]:
     &#34;&#34;&#34;
     Load a base T5 model and tokenizer from the &#39;google-t5/t5-small&#39; checkpoint.
 
     Args:
-        device: The device to run the model on.
+        device (torch.device): The device to run the model on.
 
     Returns:
         Tuple[T5Tokenizer, T5ForConditionalGeneration]: A tuple containing the tokenizer and the model, both loaded and moved to the specified device.
@@ -56,15 +62,20 @@ def get_base_model(device):
     return tokenizer, model.to(device)
 
 
-def t5_inference(tokenizer, model, sequence, device):
+def t5_inference(
+    tokenizer: T5Tokenizer,
+    model: T5ForConditionalGeneration,
+    sequence: str,
+    device: torch.device,
+) -&gt; List[str]:
     &#34;&#34;&#34;
     Perform inference using a T5 model for translation from English to German.
 
     Args:
-        tokenizer: The tokenizer for the T5 model.
-        model: The T5 model for translation.
+        tokenizer (T5Tokenizer): The tokenizer for the T5 model.
+        model (T5ForConditionalGeneration): The T5 model for translation.
         sequence (str): The input sequence to translate from English to German.
-        device: The device to run the model on.
+        device (torch.device): The device to run the model on.
 
     Returns:
         str: The translated sequence from English to German.
@@ -79,7 +90,9 @@ def t5_inference(tokenizer, model, sequence, device):
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 
-def mt_batch_inference(sequences, device, batch_size, logger):
+def mt_batch_inference(
+    sequences: List[str], device: torch.device, batch_size: int, logger: logging.Logger
+) -&gt; List[str]:
     &#34;&#34;&#34;
     Perform batch-based machine translation inference using a pre-trained Marian MT model.
 
@@ -126,13 +139,13 @@ def mt_batch_inference(sequences, device, batch_size, logger):
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="transformer.src.pretrained_inference.get_base_model"><code class="name flex">
-<span>def <span class="ident">get_base_model</span></span>(<span>device)</span>
+<span>def <span class="ident">get_base_model</span></span>(<span>device: torch.device) ‑> Tuple[transformers.models.t5.tokenization_t5.T5Tokenizer, transformers.models.t5.modeling_t5.T5ForConditionalGeneration]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Load a base T5 model and tokenizer from the 'google-t5/t5-small' checkpoint.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>device</code></strong></dt>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
 <dd>The device to run the model on.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
@@ -144,12 +157,14 @@ def mt_batch_inference(sequences, device, batch_size, logger):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_base_model(device):
+<pre><code class="python">def get_base_model(
+    device: torch.device,
+) -&gt; Tuple[T5Tokenizer, T5ForConditionalGeneration]:
     &#34;&#34;&#34;
     Load a base T5 model and tokenizer from the &#39;google-t5/t5-small&#39; checkpoint.
 
     Args:
-        device: The device to run the model on.
+        device (torch.device): The device to run the model on.
 
     Returns:
         Tuple[T5Tokenizer, T5ForConditionalGeneration]: A tuple containing the tokenizer and the model, both loaded and moved to the specified device.
@@ -166,7 +181,7 @@ def mt_batch_inference(sequences, device, batch_size, logger):
 </details>
 </dd>
 <dt id="transformer.src.pretrained_inference.mt_batch_inference"><code class="name flex">
-<span>def <span class="ident">mt_batch_inference</span></span>(<span>sequences, device, batch_size, logger)</span>
+<span>def <span class="ident">mt_batch_inference</span></span>(<span>sequences: List[str], device: torch.device, batch_size: int, logger: logging.Logger) ‑> List[str]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Perform batch-based machine translation inference using a pre-trained Marian MT model.</p>
@@ -190,7 +205,9 @@ def mt_batch_inference(sequences, device, batch_size, logger):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def mt_batch_inference(sequences, device, batch_size, logger):
+<pre><code class="python">def mt_batch_inference(
+    sequences: List[str], device: torch.device, batch_size: int, logger: logging.Logger
+) -&gt; List[str]:
     &#34;&#34;&#34;
     Perform batch-based machine translation inference using a pre-trained Marian MT model.
 
@@ -230,19 +247,19 @@ def mt_batch_inference(sequences, device, batch_size, logger):
 </details>
 </dd>
 <dt id="transformer.src.pretrained_inference.t5_inference"><code class="name flex">
-<span>def <span class="ident">t5_inference</span></span>(<span>tokenizer, model, sequence, device)</span>
+<span>def <span class="ident">t5_inference</span></span>(<span>tokenizer: transformers.models.t5.tokenization_t5.T5Tokenizer, model: transformers.models.t5.modeling_t5.T5ForConditionalGeneration, sequence: str, device: torch.device) ‑> List[str]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Perform inference using a T5 model for translation from English to German.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>tokenizer</code></strong></dt>
+<dt><strong><code>tokenizer</code></strong> :&ensp;<code>T5Tokenizer</code></dt>
 <dd>The tokenizer for the T5 model.</dd>
-<dt><strong><code>model</code></strong></dt>
+<dt><strong><code>model</code></strong> :&ensp;<code>T5ForConditionalGeneration</code></dt>
 <dd>The T5 model for translation.</dd>
 <dt><strong><code>sequence</code></strong> :&ensp;<code>str</code></dt>
 <dd>The input sequence to translate from English to German.</dd>
-<dt><strong><code>device</code></strong></dt>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
 <dd>The device to run the model on.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
@@ -254,15 +271,20 @@ def mt_batch_inference(sequences, device, batch_size, logger):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def t5_inference(tokenizer, model, sequence, device):
+<pre><code class="python">def t5_inference(
+    tokenizer: T5Tokenizer,
+    model: T5ForConditionalGeneration,
+    sequence: str,
+    device: torch.device,
+) -&gt; List[str]:
     &#34;&#34;&#34;
     Perform inference using a T5 model for translation from English to German.
 
     Args:
-        tokenizer: The tokenizer for the T5 model.
-        model: The T5 model for translation.
+        tokenizer (T5Tokenizer): The tokenizer for the T5 model.
+        model (T5ForConditionalGeneration): The T5 model for translation.
         sequence (str): The input sequence to translate from English to German.
-        device: The device to run the model on.
+        device (torch.device): The device to run the model on.
 
     Returns:
         str: The translated sequence from English to German.

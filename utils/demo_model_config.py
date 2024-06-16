@@ -60,6 +60,7 @@ class ModelConfig:
         ):
             return f"Please provide a model and tokenizer, {model}; {tokenizer}"
         try:
+            model, tokenizer = self.process_file(model), self.process_file(tokenizer)
             self.custom_translator = Processor.from_checkpoint(
                 model, tokenizer, self.device
             )

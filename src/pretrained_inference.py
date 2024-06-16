@@ -1,3 +1,6 @@
+from typing import List, Tuple
+import logging.config
+
 from transformers import (
     T5Tokenizer,
     T5ForConditionalGeneration,
@@ -5,14 +8,17 @@ from transformers import (
     MarianTokenizer,
 )
 from torch.cuda.amp import autocast
+import torch
 
 
-def get_base_model(device):
+def get_base_model(
+    device: torch.device,
+) -> Tuple[T5Tokenizer, T5ForConditionalGeneration]:
     """
     Load a base T5 model and tokenizer from the 'google-t5/t5-small' checkpoint.
 
     Args:
-        device: The device to run the model on.
+        device (torch.device): The device to run the model on.
 
     Returns:
         Tuple[T5Tokenizer, T5ForConditionalGeneration]: A tuple containing the tokenizer and the model, both loaded and moved to the specified device.
@@ -28,15 +34,20 @@ def get_base_model(device):
     return tokenizer, model.to(device)
 
 
-def t5_inference(tokenizer, model, sequence, device):
+def t5_inference(
+    tokenizer: T5Tokenizer,
+    model: T5ForConditionalGeneration,
+    sequence: str,
+    device: torch.device,
+) -> List[str]:
     """
     Perform inference using a T5 model for translation from English to German.
 
     Args:
-        tokenizer: The tokenizer for the T5 model.
-        model: The T5 model for translation.
+        tokenizer (T5Tokenizer): The tokenizer for the T5 model.
+        model (T5ForConditionalGeneration): The T5 model for translation.
         sequence (str): The input sequence to translate from English to German.
-        device: The device to run the model on.
+        device (torch.device): The device to run the model on.
 
     Returns:
         str: The translated sequence from English to German.
@@ -51,7 +62,9 @@ def t5_inference(tokenizer, model, sequence, device):
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 
-def mt_batch_inference(sequences, device, batch_size, logger):
+def mt_batch_inference(
+    sequences: List[str], device: torch.device, batch_size: int, logger: logging.Logger
+) -> List[str]:
     """
     Perform batch-based machine translation inference using a pre-trained Marian MT model.
 

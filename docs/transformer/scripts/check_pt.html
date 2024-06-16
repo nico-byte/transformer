@@ -30,17 +30,24 @@
 import torch
 
 
-def dummy_training(device, dtype, learning_rate, timesteps, x, y):
+def dummy_training(
+    device: torch.device,
+    dtype: torch.dtype,
+    learning_rate: float,
+    timesteps: int,
+    x: torch.Tensor,
+    y: torch.Tensor,
+):
     &#34;&#34;&#34;
     Perform dummy training with a simple regression model.
 
     Args:
-        device: Device to perform training on.
-        dtype: Data type for the tensors.
+        device (torch.device): Device to perform training on.
+        dtype (torch.dtype): Data type for the tensors.
         learning_rate (float): Learning rate for gradient descent.
         timesteps (int): Number of training steps.
-        x: Input tensor.
-        y: Output tensor.
+        x (torch.Tensor): Input tensor.
+        y (torch.Tensor): Output tensor.
 
     Yields:
         None
@@ -111,23 +118,23 @@ print(&#34;No Errors, you are good to go!&#34;)</code></pre>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="transformer.scripts.check_pt.dummy_training"><code class="name flex">
-<span>def <span class="ident">dummy_training</span></span>(<span>device, dtype, learning_rate, timesteps, x, y)</span>
+<span>def <span class="ident">dummy_training</span></span>(<span>device: torch.device, dtype: torch.dtype, learning_rate: float, timesteps: int, x: torch.Tensor, y: torch.Tensor)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Perform dummy training with a simple regression model.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>device</code></strong></dt>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
 <dd>Device to perform training on.</dd>
-<dt><strong><code>dtype</code></strong></dt>
+<dt><strong><code>dtype</code></strong> :&ensp;<code>torch.dtype</code></dt>
 <dd>Data type for the tensors.</dd>
 <dt><strong><code>learning_rate</code></strong> :&ensp;<code>float</code></dt>
 <dd>Learning rate for gradient descent.</dd>
 <dt><strong><code>timesteps</code></strong> :&ensp;<code>int</code></dt>
 <dd>Number of training steps.</dd>
-<dt><strong><code>x</code></strong></dt>
+<dt><strong><code>x</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>Input tensor.</dd>
-<dt><strong><code>y</code></strong></dt>
+<dt><strong><code>y</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>Output tensor.</dd>
 </dl>
 <h2 id="yields">Yields</h2>
@@ -136,17 +143,24 @@ print(&#34;No Errors, you are good to go!&#34;)</code></pre>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def dummy_training(device, dtype, learning_rate, timesteps, x, y):
+<pre><code class="python">def dummy_training(
+    device: torch.device,
+    dtype: torch.dtype,
+    learning_rate: float,
+    timesteps: int,
+    x: torch.Tensor,
+    y: torch.Tensor,
+):
     &#34;&#34;&#34;
     Perform dummy training with a simple regression model.
 
     Args:
-        device: Device to perform training on.
-        dtype: Data type for the tensors.
+        device (torch.device): Device to perform training on.
+        dtype (torch.dtype): Data type for the tensors.
         learning_rate (float): Learning rate for gradient descent.
         timesteps (int): Number of training steps.
-        x: Input tensor.
-        y: Output tensor.
+        x (torch.Tensor): Input tensor.
+        y (torch.Tensor): Output tensor.
 
     Yields:
         None

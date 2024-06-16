@@ -26,32 +26,39 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import torch
+<pre><code class="python">from typing import Tuple
+
+import torch
 from torch import Tensor
 import tokenizers
+
+from src.seq2seq_transformer import Seq2SeqTransformer
 
 
 class Processor:
     &#34;&#34;&#34;
     Provides a Processor class that encapsulates a PyTorch model, tokenizer, and device for generating text translations.
 
-    The Processor class has the following methods:
-
-    - `from_instance`: Creates a Processor instance from a pre-trained model, tokenizer, and device.
-    - `from_checkpoint`: Creates a Processor instance from a model checkpoint, tokenizer, and device.
-    - `generate_square_subsequent_mask`: Generates a square subsequent mask for use in the Transformer model.
-    - `create_mask`: Creates the necessary masks for the Transformer model, including source and target masks and padding masks.
-    - `greedy_decode`: Performs greedy decoding to generate the translated text from the source text.
-    - `translate`: Translates a given source sentence using the Processor&#39;s model and tokenizer.
+    ...
+    
+    Attributes:
+        model (Seq2SeqTransformer): The PyTorch model.
+        tokenizer (tokenizers.Tokenizer): The tokenizer.
+        device (torch.device): The device to use for the model and tokenizer.
     &#34;&#34;&#34;
 
     @classmethod
-    def from_instance(cls, model, tokenizer, device):
+    def from_instance(
+        cls,
+        model: Seq2SeqTransformer,
+        tokenizer: tokenizers.Tokenizer,
+        device: torch.device,
+    ):
         &#34;&#34;&#34;
         Creates a Processor instance from a pre-trained model, tokenizer, and device.
 
         Args:
-            model (torch.nn.Module): The pre-trained PyTorch model.
+            model (Seq2SeqTransformer): The pre-trained PyTorch model.
             tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
             device (torch.device): The device to use for the model and tokenizer.
 
@@ -67,13 +74,15 @@ class Processor:
         return processor
 
     @classmethod
-    def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+    def from_checkpoint(
+        cls, model_checkpoint: str, tokenizer: str, device: torch.device
+    ):
         &#34;&#34;&#34;
         Creates a Processor instance from a model checkpoint, tokenizer, and device.
 
         Args:
             model_checkpoint (str): The path to the model checkpoint file.
-            tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+            tokenizer (str): The pre-trained tokenizer.
             device (torch.device): The device to use for the model and tokenizer.
 
         Returns:
@@ -87,7 +96,7 @@ class Processor:
 
         return processor
 
-    def generate_square_subsequent_mask(self, sz):
+    def generate_square_subsequent_mask(self, sz: int) -&gt; torch.Tensor:
         &#34;&#34;&#34;
         Generate a square subsequent mask of size sz x sz.
 
@@ -108,7 +117,9 @@ class Processor:
         )
         return mask
 
-    def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int = 58100):
+    def create_mask(
+        self, src: Tensor, tgt: Tensor, pad_id: int = 58100
+    ) -&gt; Tuple[Tensor, Tensor, Tensor, Tensor]:
         &#34;&#34;&#34;
         Create the required masks for the Transformer model.
 
@@ -118,11 +129,11 @@ class Processor:
             pad_id (int, optional): The padding token ID, defaults to 58100.
 
         Returns:
-            tuple:
-                - src_mask (torch.Tensor): The source mask.
-                - tgt_mask (torch.Tensor): The target mask.
-                - src_padding_mask (torch.Tensor): The source padding mask.
-                - tgt_padding_mask (torch.Tensor): The target padding mask.
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: The following masks:
+                src_mask (torch.Tensor): The source mask.
+                tgt_mask (torch.Tensor): The target mask.
+                src_padding_mask (torch.Tensor): The source padding mask.
+                tgt_padding_mask (torch.Tensor): The target padding mask.
         &#34;&#34;&#34;
         src_seq_len = src.shape[0]
         tgt_seq_len = tgt.shape[0]
@@ -212,15 +223,16 @@ class Processor:
 </code></dt>
 <dd>
 <div class="desc"><p>Provides a Processor class that encapsulates a PyTorch model, tokenizer, and device for generating text translations.</p>
-<p>The Processor class has the following methods:</p>
-<ul>
-<li><code>from_instance</code>: Creates a Processor instance from a pre-trained model, tokenizer, and device.</li>
-<li><code>from_checkpoint</code>: Creates a Processor instance from a model checkpoint, tokenizer, and device.</li>
-<li><code>generate_square_subsequent_mask</code>: Generates a square subsequent mask for use in the Transformer model.</li>
-<li><code>create_mask</code>: Creates the necessary masks for the Transformer model, including source and target masks and padding masks.</li>
-<li><code>greedy_decode</code>: Performs greedy decoding to generate the translated text from the source text.</li>
-<li><code>translate</code>: Translates a given source sentence using the Processor's model and tokenizer.</li>
-</ul></div>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>model</code></strong> :&ensp;<code>Seq2SeqTransformer</code></dt>
+<dd>The PyTorch model.</dd>
+<dt><strong><code>tokenizer</code></strong> :&ensp;<code>tokenizers.Tokenizer</code></dt>
+<dd>The tokenizer.</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
+<dd>The device to use for the model and tokenizer.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -229,23 +241,26 @@ class Processor:
     &#34;&#34;&#34;
     Provides a Processor class that encapsulates a PyTorch model, tokenizer, and device for generating text translations.
 
-    The Processor class has the following methods:
-
-    - `from_instance`: Creates a Processor instance from a pre-trained model, tokenizer, and device.
-    - `from_checkpoint`: Creates a Processor instance from a model checkpoint, tokenizer, and device.
-    - `generate_square_subsequent_mask`: Generates a square subsequent mask for use in the Transformer model.
-    - `create_mask`: Creates the necessary masks for the Transformer model, including source and target masks and padding masks.
-    - `greedy_decode`: Performs greedy decoding to generate the translated text from the source text.
-    - `translate`: Translates a given source sentence using the Processor&#39;s model and tokenizer.
+    ...
+    
+    Attributes:
+        model (Seq2SeqTransformer): The PyTorch model.
+        tokenizer (tokenizers.Tokenizer): The tokenizer.
+        device (torch.device): The device to use for the model and tokenizer.
     &#34;&#34;&#34;
 
     @classmethod
-    def from_instance(cls, model, tokenizer, device):
+    def from_instance(
+        cls,
+        model: Seq2SeqTransformer,
+        tokenizer: tokenizers.Tokenizer,
+        device: torch.device,
+    ):
         &#34;&#34;&#34;
         Creates a Processor instance from a pre-trained model, tokenizer, and device.
 
         Args:
-            model (torch.nn.Module): The pre-trained PyTorch model.
+            model (Seq2SeqTransformer): The pre-trained PyTorch model.
             tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
             device (torch.device): The device to use for the model and tokenizer.
 
@@ -261,13 +276,15 @@ class Processor:
         return processor
 
     @classmethod
-    def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+    def from_checkpoint(
+        cls, model_checkpoint: str, tokenizer: str, device: torch.device
+    ):
         &#34;&#34;&#34;
         Creates a Processor instance from a model checkpoint, tokenizer, and device.
 
         Args:
             model_checkpoint (str): The path to the model checkpoint file.
-            tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+            tokenizer (str): The pre-trained tokenizer.
             device (torch.device): The device to use for the model and tokenizer.
 
         Returns:
@@ -281,7 +298,7 @@ class Processor:
 
         return processor
 
-    def generate_square_subsequent_mask(self, sz):
+    def generate_square_subsequent_mask(self, sz: int) -&gt; torch.Tensor:
         &#34;&#34;&#34;
         Generate a square subsequent mask of size sz x sz.
 
@@ -302,7 +319,9 @@ class Processor:
         )
         return mask
 
-    def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int = 58100):
+    def create_mask(
+        self, src: Tensor, tgt: Tensor, pad_id: int = 58100
+    ) -&gt; Tuple[Tensor, Tensor, Tensor, Tensor]:
         &#34;&#34;&#34;
         Create the required masks for the Transformer model.
 
@@ -312,11 +331,11 @@ class Processor:
             pad_id (int, optional): The padding token ID, defaults to 58100.
 
         Returns:
-            tuple:
-                - src_mask (torch.Tensor): The source mask.
-                - tgt_mask (torch.Tensor): The target mask.
-                - src_padding_mask (torch.Tensor): The source padding mask.
-                - tgt_padding_mask (torch.Tensor): The target padding mask.
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: The following masks:
+                src_mask (torch.Tensor): The source mask.
+                tgt_mask (torch.Tensor): The target mask.
+                src_padding_mask (torch.Tensor): The source padding mask.
+                tgt_padding_mask (torch.Tensor): The target padding mask.
         &#34;&#34;&#34;
         src_seq_len = src.shape[0]
         tgt_seq_len = tgt.shape[0]
@@ -394,7 +413,7 @@ class Processor:
 <h3>Static methods</h3>
 <dl>
 <dt id="transformer.src.processor.Processor.from_checkpoint"><code class="name flex">
-<span>def <span class="ident">from_checkpoint</span></span>(<span>model_checkpoint, tokenizer, device)</span>
+<span>def <span class="ident">from_checkpoint</span></span>(<span>model_checkpoint: str, tokenizer: str, device: torch.device)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Creates a Processor instance from a model checkpoint, tokenizer, and device.</p>
@@ -402,7 +421,7 @@ class Processor:
 <dl>
 <dt><strong><code>model_checkpoint</code></strong> :&ensp;<code>str</code></dt>
 <dd>The path to the model checkpoint file.</dd>
-<dt><strong><code>tokenizer</code></strong> :&ensp;<code>tokenizers.Tokenizer</code></dt>
+<dt><strong><code>tokenizer</code></strong> :&ensp;<code>str</code></dt>
 <dd>The pre-trained tokenizer.</dd>
 <dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
 <dd>The device to use for the model and tokenizer.</dd>
@@ -417,13 +436,15 @@ class Processor:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@classmethod
-def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+def from_checkpoint(
+    cls, model_checkpoint: str, tokenizer: str, device: torch.device
+):
     &#34;&#34;&#34;
     Creates a Processor instance from a model checkpoint, tokenizer, and device.
 
     Args:
         model_checkpoint (str): The path to the model checkpoint file.
-        tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+        tokenizer (str): The pre-trained tokenizer.
         device (torch.device): The device to use for the model and tokenizer.
 
     Returns:
@@ -439,13 +460,13 @@ def from_checkpoint(cls, model_checkpoint, tokenizer, device):
 </details>
 </dd>
 <dt id="transformer.src.processor.Processor.from_instance"><code class="name flex">
-<span>def <span class="ident">from_instance</span></span>(<span>model, tokenizer, device)</span>
+<span>def <span class="ident">from_instance</span></span>(<span>model: src.seq2seq_transformer.Seq2SeqTransformer, tokenizer: tokenizers.Tokenizer, device: torch.device)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Creates a Processor instance from a pre-trained model, tokenizer, and device.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>model</code></strong> :&ensp;<code>torch.nn.Module</code></dt>
+<dt><strong><code>model</code></strong> :&ensp;<code>Seq2SeqTransformer</code></dt>
 <dd>The pre-trained PyTorch model.</dd>
 <dt><strong><code>tokenizer</code></strong> :&ensp;<code>tokenizers.Tokenizer</code></dt>
 <dd>The pre-trained tokenizer.</dd>
@@ -462,12 +483,17 @@ def from_checkpoint(cls, model_checkpoint, tokenizer, device):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@classmethod
-def from_instance(cls, model, tokenizer, device):
+def from_instance(
+    cls,
+    model: Seq2SeqTransformer,
+    tokenizer: tokenizers.Tokenizer,
+    device: torch.device,
+):
     &#34;&#34;&#34;
     Creates a Processor instance from a pre-trained model, tokenizer, and device.
 
     Args:
-        model (torch.nn.Module): The pre-trained PyTorch model.
+        model (Seq2SeqTransformer): The pre-trained PyTorch model.
         tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
         device (torch.device): The device to use for the model and tokenizer.
 
@@ -487,7 +513,7 @@ def from_instance(cls, model, tokenizer, device):
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.processor.Processor.create_mask"><code class="name flex">
-<span>def <span class="ident">create_mask</span></span>(<span>self, src: torch.Tensor, tgt: torch.Tensor, pad_id: int = 58100)</span>
+<span>def <span class="ident">create_mask</span></span>(<span>self, src: torch.Tensor, tgt: torch.Tensor, pad_id: int = 58100) ‑> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Create the required masks for the Transformer model.</p>
@@ -501,16 +527,21 @@ def from_instance(cls, model, tokenizer, device):
 <dd>The padding token ID, defaults to 58100.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
-<p>tuple:
-- src_mask (torch.Tensor): The source mask.
-- tgt_mask (torch.Tensor): The target mask.
-- src_padding_mask (torch.Tensor): The source padding mask.
-- tgt_padding_mask (torch.Tensor): The target padding mask.</p></div>
+<dl>
+<dt><code>Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]</code></dt>
+<dd>The following masks:
+src_mask (torch.Tensor): The source mask.
+tgt_mask (torch.Tensor): The target mask.
+src_padding_mask (torch.Tensor): The source padding mask.
+tgt_padding_mask (torch.Tensor): The target padding mask.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int = 58100):
+<pre><code class="python">def create_mask(
+    self, src: Tensor, tgt: Tensor, pad_id: int = 58100
+) -&gt; Tuple[Tensor, Tensor, Tensor, Tensor]:
     &#34;&#34;&#34;
     Create the required masks for the Transformer model.
 
@@ -520,11 +551,11 @@ def from_instance(cls, model, tokenizer, device):
         pad_id (int, optional): The padding token ID, defaults to 58100.
 
     Returns:
-        tuple:
-            - src_mask (torch.Tensor): The source mask.
-            - tgt_mask (torch.Tensor): The target mask.
-            - src_padding_mask (torch.Tensor): The source padding mask.
-            - tgt_padding_mask (torch.Tensor): The target padding mask.
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: The following masks:
+            src_mask (torch.Tensor): The source mask.
+            tgt_mask (torch.Tensor): The target mask.
+            src_padding_mask (torch.Tensor): The source padding mask.
+            tgt_padding_mask (torch.Tensor): The target padding mask.
     &#34;&#34;&#34;
     src_seq_len = src.shape[0]
     tgt_seq_len = tgt.shape[0]
@@ -540,7 +571,7 @@ def from_instance(cls, model, tokenizer, device):
 </details>
 </dd>
 <dt id="transformer.src.processor.Processor.generate_square_subsequent_mask"><code class="name flex">
-<span>def <span class="ident">generate_square_subsequent_mask</span></span>(<span>self, sz)</span>
+<span>def <span class="ident">generate_square_subsequent_mask</span></span>(<span>self, sz: int) ‑> torch.Tensor</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Generate a square subsequent mask of size sz x sz.</p>
@@ -558,7 +589,7 @@ def from_instance(cls, model, tokenizer, device):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def generate_square_subsequent_mask(self, sz):
+<pre><code class="python">def generate_square_subsequent_mask(self, sz: int) -&gt; torch.Tensor:
     &#34;&#34;&#34;
     Generate a square subsequent mask of size sz x sz.
 

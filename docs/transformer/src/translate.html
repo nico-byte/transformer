@@ -31,7 +31,9 @@ import tokenizers
 from src.processor import Processor
 
 
-def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
+def translate_sequence_from_checkpoint(
+    checkpoint: str, tokenizer: str, sequence: str, device: torch.device
+) -&gt; str:
     &#34;&#34;&#34;
     Translate a sequence using a model checkpoint.
 
@@ -39,7 +41,7 @@ def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
         checkpoint (str): Path to the model checkpoint.
         tokenizer (str): Path to the tokenizer.
         sequence (str): Input sequence to translate.
-        device: Device to run the model on.
+        device (torch.device): Device to run the model on.
 
     Returns:
         str: Translated sequence.
@@ -61,7 +63,7 @@ def check_device(dvc=None):
     Check and return the appropriate torch device.
 
     Args:
-        dvc: Device string. Defaults to None.
+        dvc (str): Defaults to None.
 
     Returns:
         torch.device: The selected device.
@@ -100,8 +102,8 @@ def check_device(dvc=None):
 <div class="desc"><p>Check and return the appropriate torch device.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>dvc</code></strong></dt>
-<dd>Device string. Defaults to None.</dd>
+<dt><strong><code>dvc</code></strong> :&ensp;<code>str</code></dt>
+<dd>Defaults to None.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
@@ -117,7 +119,7 @@ def check_device(dvc=None):
     Check and return the appropriate torch device.
 
     Args:
-        dvc: Device string. Defaults to None.
+        dvc (str): Defaults to None.
 
     Returns:
         torch.device: The selected device.
@@ -143,7 +145,7 @@ def check_device(dvc=None):
 </details>
 </dd>
 <dt id="transformer.src.translate.translate_sequence_from_checkpoint"><code class="name flex">
-<span>def <span class="ident">translate_sequence_from_checkpoint</span></span>(<span>checkpoint, tokenizer, sequence, device)</span>
+<span>def <span class="ident">translate_sequence_from_checkpoint</span></span>(<span>checkpoint: str, tokenizer: str, sequence: str, device: torch.device) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Translate a sequence using a model checkpoint.</p>
@@ -155,7 +157,7 @@ def check_device(dvc=None):
 <dd>Path to the tokenizer.</dd>
 <dt><strong><code>sequence</code></strong> :&ensp;<code>str</code></dt>
 <dd>Input sequence to translate.</dd>
-<dt><strong><code>device</code></strong></dt>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
 <dd>Device to run the model on.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
@@ -167,7 +169,9 @@ def check_device(dvc=None):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
+<pre><code class="python">def translate_sequence_from_checkpoint(
+    checkpoint: str, tokenizer: str, sequence: str, device: torch.device
+) -&gt; str:
     &#34;&#34;&#34;
     Translate a sequence using a model checkpoint.
 
@@ -175,7 +179,7 @@ def check_device(dvc=None):
         checkpoint (str): Path to the model checkpoint.
         tokenizer (str): Path to the tokenizer.
         sequence (str): Input sequence to translate.
-        device: Device to run the model on.
+        device (torch.device): Device to run the model on.
 
     Returns:
         str: Translated sequence.

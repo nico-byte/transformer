@@ -55,6 +55,7 @@ class SharedConfig(BaseModel):
         tgt_language (str): The target language.
         run_id (str): The run ID for the model.
     &#34;&#34;&#34;
+
     special_symbols: List[str] = [&#34;&lt;unk&gt;&#34;, &#34;&lt;bos&gt;&#34;, &#34;&lt;eos&gt;&#34;, &#34;&lt;pad&gt;&#34;]
     src_language: str = &#34;en&#34;
     tgt_language: str = &#34;de&#34;
@@ -73,6 +74,7 @@ class DataLoaderConfig(PydanticBaseModel):
         drop_last (bool): Whether to drop the last batch or not.
         shuffle (bool): Whether to shuffle the data or not.
     &#34;&#34;&#34;
+
     dataset: str = &#34;iwslt2017&#34;
     batch_size: int = 128
     num_workers: int = 2
@@ -95,6 +97,7 @@ class TransformerConfig(PydanticBaseModel):
         dim_feedforward (int): Size of the feedforward network.
         dropout (float): Dropout probability.
     &#34;&#34;&#34;
+
     num_encoder_layers: int
     num_decoder_layers: int
     emb_size: int
@@ -229,6 +232,7 @@ validated to form a valid model.</p>
         drop_last (bool): Whether to drop the last batch or not.
         shuffle (bool): Whether to shuffle the data or not.
     &#34;&#34;&#34;
+
     dataset: str = &#34;iwslt2017&#34;
     batch_size: int = 128
     num_workers: int = 2
@@ -315,6 +319,7 @@ validated to form a valid model.</p>
         tgt_language (str): The target language.
         run_id (str): The run ID for the model.
     &#34;&#34;&#34;
+
     special_symbols: List[str] = [&#34;&lt;unk&gt;&#34;, &#34;&lt;bos&gt;&#34;, &#34;&lt;eos&gt;&#34;, &#34;&lt;pad&gt;&#34;]
     src_language: str = &#34;en&#34;
     tgt_language: str = &#34;de&#34;
@@ -489,6 +494,7 @@ validated to form a valid model.</p>
         dim_feedforward (int): Size of the feedforward network.
         dropout (float): Dropout probability.
     &#34;&#34;&#34;
+
     num_encoder_layers: int
     num_decoder_layers: int
     emb_size: int

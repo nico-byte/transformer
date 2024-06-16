@@ -16,6 +16,7 @@ from datasets import load_dataset
 from utils.config import DataLoaderConfig, SharedConfig
 from tokenizer.wordpiece_tokenizer import build_tokenizer as build_wordpiece_tokenizer
 from tokenizer.unigram_tokenizer import build_tokenizer as build_unigram_tokenizer
+from src.translate import check_device
 
 # in case error occurs that it cant be imported by torch
 torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = (
@@ -26,6 +27,8 @@ torch.utils.data.datapipes.utils.common.DILL_AVAILABLE = (
 class BaseDataLoader(metaclass=abc.ABCMeta):
     """
     Abstract base class for data loaders in the application. Provides common functionality for building datasets and dataloaders.
+
+    ...
 
     Attributes:
         batch_size (int): The batch size for the dataloaders.
@@ -44,18 +47,15 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         test_dataloader (DataLoader): The test dataloader.
         val_dataloader (DataLoader): The validation dataloader.
         logger (Logger): The logger for the data loader.
-
-    Methods:
-        build_datasets(): Abstract method for building the datasets.
-        build_dataloaders(): Builds the dataloaders for the training, validation, and test datasets.
-        collate_fn(batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]: Collate function to process a batch of data.
-        backtranslate_dataset(): Performs back-translation on the training dataset.
-        clean_dataset(dataset: List[Tuple[str, str]]) -> List[Tuple[str, str]]: Cleans the dataset by removing duplicates and empty sequences.
-        train_tokenizer(run_id: str, vocab_size: int, tokenizer: str="wordpiece"): Trains the tokenizer on the dataset.
-        batch_iterator(dataset, batch_size=1000): Yields batches of the dataset.
     """
 
     def __init__(self, dl_config: DataLoaderConfig, shared_config: SharedConfig):
+        """Initializes the BaseDataLoader class.
+
+        Args:
+            dl_config (DataLoaderConfig): DataLoaderConfig object that contains configuration settings for the data loader
+            shared_config (SharedConfig): SharedConfig object that contains shared configuration settings across the application
+        """
         self.batch_size: int = dl_config.batch_size
         self.num_workers: int = dl_config.num_workers
         self.pin_memory: bool = dl_config.pin_memory
@@ -151,7 +151,9 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         """
         tgt_dataset = [x[1] for x in self.train_dataset]
 
-        backtrans_dataset = mt_batch_inference(tgt_dataset, "cuda", 512, self.logger)
+        device = check_device("cuda")
+
+        backtrans_dataset = mt_batch_inference(tgt_dataset, device, 512, self.logger)
 
         backtrans_dataset_pairs = [
             [x, y] for x, y in zip(backtrans_dataset, tgt_dataset)
@@ -160,7 +162,7 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
         new_dataset = self.train_dataset + backtrans_dataset_pairs
         self.train_dataset = self.clean_dataset(new_dataset)
 
-    def clean_dataset(self, dataset: List[Tuple[str, str]]):
+    def clean_dataset(self, dataset: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
         """
         Clean the dataset by removing duplicates and empty sequences.
 
@@ -235,29 +237,27 @@ class BaseDataLoader(metaclass=abc.ABCMeta):
 
 class IWSLT2017DataLoader(BaseDataLoader):
     """
-    Build the datasets for training, validation, and testing from the IWSLT2017 dataset.
+    Class for providing the IWSLT2017 datasets, dataloaders and the tokenizer.
 
-    This method loads the IWSLT2017 dataset, extracts the source and target language sequences, and assigns them to the `self.train_dataset`, `self.test_dataset`, and `self.val_dataset` attributes.
+    ...
 
-    The training dataset is loaded from the "train" split, the test dataset is loaded from the "test" split, and the validation dataset is loaded from the "validation" split. The dataset entries are extracted as tuples of (source, target) language sequences.
-
-    Some debug logging is also performed to print the first entry and length of each dataset.
+    Attributes:
+        train_dataset (List[Tuple[str, str]]): Training dataset.
+        test_dataset (List[Tuple[str, str]]): Test dataset.
+        val_dataset (List[Tuple[str, str]]): Validation dataset.
+        train_dataloader (DataLoader): Dataloader for the training dataset.
+        test_dataloader (DataLoader): Dataloader for the test dataset.
+        val_dataloader (DataLoader): Dataloader for the validation dataset.
+        tokenizer (Tokenizer): Tokenizer for the training dataset.
     """
 
     def __init__(self, dl_config: DataLoaderConfig, shared_config: SharedConfig):
         """
         Initializes the IWSLT2017DataLoader class, which is responsible for loading and preparing the IWSLT2017 dataset for use in a machine learning model.
 
-        The constructor takes two arguments:
-            - `dl_config`: a `DataLoaderConfig` object that contains configuration settings for the data loader
-            - `shared_config`: a `SharedConfig` object that contains shared configuration settings across the application
-
-        \b
-        The constructor performs the following steps:
-        1. Calls the constructor of the parent class (`BaseDataLoader`) with the provided `dl_config` and `shared_config` arguments.
-        2. Loads the IWSLT2017 dataset using the `load_dataset` function from the `datasets` library, with the dataset name `'iwslt2017'` and the dataset configuration `f'iwslt2017-{self.src_language}-{self.tgt_language}'`. The dataset is cached in the `./.data/iwslt2017` directory.
-        3. Calls the `build_datasets` method to initialize the `self.train_dataset`, `self.test_dataset`, and `self.val_dataset` attributes with the loaded dataset.
-        4. Logs a message indicating that the datasets have been loaded.
+        Args:
+            dl_config (DataLoaderConfig): DataLoaderConfig object that contains configuration settings for the data loader.
+            shared_config (SharedConfig): SharedConfig object that contains shared configuration settings across the application.
         """
         super().__init__(dl_config, shared_config)
 
@@ -302,7 +302,7 @@ class IWSLT2017DataLoader(BaseDataLoader):
         tokenizer: str = "wordpiece",
     ):
         """
-        Builds a new instance of the `Multi30kDataLoader` class with a pre-trained tokenizer.
+        Builds a new instance of the IWSLT2017DataLoader class with a pre-trained tokenizer.
 
         Args:
             dl_config (DataLoaderConfig): The data loader configuration.
@@ -355,29 +355,27 @@ class IWSLT2017DataLoader(BaseDataLoader):
 
 class Multi30kDataLoader(BaseDataLoader):
     """
-    Builds the training, validation, and test datasets for the Multi30k dataset.
+    Class for providing the Multi30K datasets, dataloaders and the tokenizer.
 
-    The datasets are constructed by extracting the source and target language pairs from the
-    "translation" field of the dataset. The training dataset is constructed from the "train"
-    split, the test dataset is constructed from the "valid" split, and the validation dataset
-    is constructed from a random 5% sample of the training dataset.
+    ...
 
-    The first entry and length of each dataset are logged for debugging purposes.
+    Attributes:
+        train_dataset (List[Tuple[str, str]]): Training dataset.
+        test_dataset (List[Tuple[str, str]]): Test dataset.
+        val_dataset (List[Tuple[str, str]]): Validation dataset.
+        train_dataloader (DataLoader): Dataloader for the training dataset.
+        test_dataloader (DataLoader): Dataloader for the test dataset.
+        val_dataloader (DataLoader): Dataloader for the validation dataset.
+        tokenizer (Tokenizer): Tokenizer for the training dataset.
     """
 
     def __init__(self, dl_config: DataLoaderConfig, shared_config: SharedConfig):
         """
-        Initializes the Multi30kDataLoader class, which is responsible for loading and preparing the IWSLT2017 dataset for use in a machine learning model.
+        Initializes the Multi30KDataLoader class, which is responsible for loading and preparing the IWSLT2017 dataset for use in a machine learning model.
 
-        The constructor takes two arguments:
-            - `dl_config`: a `DataLoaderConfig` object that contains configuration settings for the data loader
-            - `shared_config`: a `SharedConfig` object that contains shared configuration settings across the application
-        
-        \b
-        The constructor performs the following steps:
-        1. Calls the constructor of the parent class (`BaseDataLoader`) with the provided `dl_config` and `shared_config` arguments.
-        2. Calls the `build_datasets` method to initialize the Multi30k dataset, `self.train_dataset`, `self.test_dataset`, and `self.val_dataset` attributes with the loaded dataset.
-        3. Logs a message indicating that the datasets have been loaded.
+        Args:
+            dl_config (DataLoaderConfig): DataLoaderConfig object that contains configuration settings for the data loader.
+            shared_config (SharedConfig): SharedConfig object that contains shared configuration settings across the application.
         """
         super().__init__(dl_config, shared_config)
 
@@ -421,8 +419,6 @@ class Multi30kDataLoader(BaseDataLoader):
         """
         Builds a new instance of the `Multi30kDataLoader` class with a specified tokenizer.
 
-        This class method is responsible for creating a new instance of the `Multi30kDataLoader` class, initializing the tokenizer, and building the necessary dataloaders for the Multi30k dataset.
-
         Args:
             dl_config (DataLoaderConfig): A configuration object containing settings for the data loader.
             shared_config (SharedConfig): A configuration object containing shared settings across the application.
@@ -445,7 +441,6 @@ class Multi30kDataLoader(BaseDataLoader):
 
     def build_datasets(self):
         """
-        \b
         Builds the training, validation, and test datasets for the Multi30k dataset.
         This method is responsible for loading the Multi30k dataset, splitting it into training, validation, and test sets, and storing them as attributes of the `Multi30kDataLoader` instance.
         The training dataset is loaded from the 'train' split of the Multi30k dataset, and 5% of the training samples are randomly selected to create the validation dataset. The remaining samples are kept in the training dataset.

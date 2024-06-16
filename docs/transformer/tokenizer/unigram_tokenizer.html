@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from typing import List
+<pre><code class="python">from typing import List, Tuple
 from tokenizers import (
     Tokenizer,
     decoders,
@@ -46,7 +46,7 @@ def build_tokenizer(
     src_dataset: List[str],
     tgt_dataset: List[str],
     vocab_size: int,
-):
+) -&gt; Tokenizer:
     &#34;&#34;&#34;
     Build and train a tokenizer on the provided source and target datasets.
 
@@ -58,7 +58,7 @@ def build_tokenizer(
         vocab_size (int): The vocabulary size for the tokenizer.
 
     Returns:
-        Tokenizer: The trained tokenizer.
+        tokenizers.Tokenizer: The trained tokenizer.
 
     The function combines the source and target datasets, shuffles them, and trains a unigram tokenizer.
     The tokenizer is configured with normalization, pre-tokenization, and post-processing steps, and is then saved
@@ -98,7 +98,7 @@ def build_tokenizer(
     return tokenizer
 
 
-def batch_iterator(dataset, batch_size=1000):
+def batch_iterator(dataset: List[str], batch_size: int = 1000):
     &#34;&#34;&#34;
     Batch iterator to yield batches of data from the dataset.
 
@@ -124,7 +124,7 @@ def batch_iterator(dataset, batch_size=1000):
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="transformer.tokenizer.unigram_tokenizer.batch_iterator"><code class="name flex">
-<span>def <span class="ident">batch_iterator</span></span>(<span>dataset, batch_size=1000)</span>
+<span>def <span class="ident">batch_iterator</span></span>(<span>dataset: List[str], batch_size: int = 1000)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Batch iterator to yield batches of data from the dataset.</p>
@@ -145,7 +145,7 @@ def batch_iterator(dataset, batch_size=1000):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def batch_iterator(dataset, batch_size=1000):
+<pre><code class="python">def batch_iterator(dataset: List[str], batch_size: int = 1000):
     &#34;&#34;&#34;
     Batch iterator to yield batches of data from the dataset.
 
@@ -164,7 +164,7 @@ def batch_iterator(dataset, batch_size=1000):
 </details>
 </dd>
 <dt id="transformer.tokenizer.unigram_tokenizer.build_tokenizer"><code class="name flex">
-<span>def <span class="ident">build_tokenizer</span></span>(<span>name: str, run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int)</span>
+<span>def <span class="ident">build_tokenizer</span></span>(<span>name: str, run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int) ‑> tokenizers.Tokenizer</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Build and train a tokenizer on the provided source and target datasets.</p>
@@ -183,7 +183,7 @@ def batch_iterator(dataset, batch_size=1000):
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Tokenizer</code></dt>
+<dt><code>tokenizers.Tokenizer</code></dt>
 <dd>The trained tokenizer.</dd>
 </dl>
 <p>The function combines the source and target datasets, shuffles them, and trains a unigram tokenizer.
@@ -199,7 +199,7 @@ to the specified directory under the given run ID.</p></div>
     src_dataset: List[str],
     tgt_dataset: List[str],
     vocab_size: int,
-):
+) -&gt; Tokenizer:
     &#34;&#34;&#34;
     Build and train a tokenizer on the provided source and target datasets.
 
@@ -211,7 +211,7 @@ to the specified directory under the given run ID.</p></div>
         vocab_size (int): The vocabulary size for the tokenizer.
 
     Returns:
-        Tokenizer: The trained tokenizer.
+        tokenizers.Tokenizer: The trained tokenizer.
 
     The function combines the source and target datasets, shuffles them, and trains a unigram tokenizer.
     The tokenizer is configured with normalization, pre-tokenization, and post-processing steps, and is then saved

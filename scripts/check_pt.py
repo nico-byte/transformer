@@ -2,17 +2,24 @@ import math
 import torch
 
 
-def dummy_training(device, dtype, learning_rate, timesteps, x, y):
+def dummy_training(
+    device: torch.device,
+    dtype: torch.dtype,
+    learning_rate: float,
+    timesteps: int,
+    x: torch.Tensor,
+    y: torch.Tensor,
+):
     """
     Perform dummy training with a simple regression model.
 
     Args:
-        device: Device to perform training on.
-        dtype: Data type for the tensors.
+        device (torch.device): Device to perform training on.
+        dtype (torch.dtype): Data type for the tensors.
         learning_rate (float): Learning rate for gradient descent.
         timesteps (int): Number of training steps.
-        x: Input tensor.
-        y: Output tensor.
+        x (torch.Tensor): Input tensor.
+        y (torch.Tensor): Output tensor.
 
     Yields:
         None

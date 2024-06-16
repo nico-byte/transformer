@@ -32,15 +32,21 @@ from torch import Tensor
 import torch
 import torch.nn as nn
 from torch.nn import Transformer
+from utils.config import TransformerConfig
 
 
 # helper Module that adds positional encoding to the token embedding to introduce a notion of word order.
 class PositionalEncoding(nn.Module):
     &#34;&#34;&#34;
     Adds positional encoding to the token embedding to introduce a notion of word order.
+    
+    ...
+    
+    Attributes:
+        dropout (nn.Dropout): The dropout module.
     &#34;&#34;&#34;
 
-    def __init__(self, emb_size: int, dropout: float, maxlen: int = 5000):
+    def __init__(self, emb_size: int, dropout: float, maxlen: int = 5000) -&gt; Tensor:
         &#34;&#34;&#34;
         Initialize the PositionalEncoding module.
 
@@ -66,10 +72,10 @@ class PositionalEncoding(nn.Module):
         Forward pass of the PositionalEncoding module.
 
         Args:
-            token_embedding (Tensor): The token embedding tensor.
+            token_embedding (torch.Tensor): The token embedding tensor.
 
         Returns:
-            Tensor: The token embedding tensor with positional encoding added.
+            torch.Tensor: The token embedding tensor with positional encoding added.
         &#34;&#34;&#34;
 
         return self.dropout(
@@ -81,9 +87,15 @@ class PositionalEncoding(nn.Module):
 class TokenEmbedding(nn.Module):
     &#34;&#34;&#34;
     Converts tensor of input indices into corresponding tensor of token embeddings.
+    
+    ...
+    
+    Attributes:
+        embedding (nn.Embedding): The embedding layer.
+        emb_size (int): The embedding size.
     &#34;&#34;&#34;
 
-    def __init__(self, vocab_size: int, emb_size):
+    def __init__(self, vocab_size: int, emb_size: int):
         &#34;&#34;&#34;
         Initialize the TokenEmbedding module.
 
@@ -96,15 +108,15 @@ class TokenEmbedding(nn.Module):
         self.embedding = nn.Embedding(vocab_size, emb_size)
         self.emb_size = emb_size
 
-    def forward(self, tokens: Tensor):
+    def forward(self, tokens: Tensor) -&gt; Tensor:
         &#34;&#34;&#34;
         Forward pass of the TokenEmbedding module.
 
         Args:
-            tokens (Tensor): The input tensor of token indices.
+            tokens (torch.Tensor): The input tensor of token indices.
 
         Returns:
-            Tensor: The token embeddings.
+            torch.Tensor: The token embeddings.
         &#34;&#34;&#34;
 
         return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
@@ -114,14 +126,23 @@ class TokenEmbedding(nn.Module):
 class Seq2SeqTransformer(nn.Module):
     &#34;&#34;&#34;
     Sequence-to-sequence transformer network.
+    
+    ...
+    
+    Attributes:
+        transformer (Transformer): The transformer module.
+        generator (nn.Linear): The linear layer to generate the output token indices.
+        src_tok_emb (TokenEmbedding): The source token embedding module.
+        tgt_tok_emb (TokenEmbedding): The target token embedding module.
+        positional_encoding (PositionalEncoding): The positional encoding module.
     &#34;&#34;&#34;
 
-    def __init__(self, model_config):
+    def __init__(self, model_config: TransformerConfig):
         &#34;&#34;&#34;
         Initialize the Seq2SeqTransformer module.
 
         Args:
-            model_config: The configuration for the model.
+            model_config (ModelConfig): The configuration for the model.
         &#34;&#34;&#34;
 
         super(Seq2SeqTransformer, self).__init__()
@@ -153,24 +174,24 @@ class Seq2SeqTransformer(nn.Module):
         self,
         src: Tensor,
         tgt: Tensor,
-        src_mask,
-        tgt_mask,
-        src_padding_mask,
-        tgt_padding_mask,
-    ):
+        src_mask: Tensor,
+        tgt_mask: Tensor,
+        src_padding_mask: Tensor,
+        tgt_padding_mask: Tensor,
+    ) -&gt; Tensor:
         &#34;&#34;&#34;
         Forward pass of the Seq2SeqTransformer module.
 
         Args:
-            src (Tensor): The source tensor.
-            tgt (Tensor): The target tensor.
-            src_mask: The source mask.
-            tgt_mask: The target mask.
-            src_padding_mask: The source padding mask.
-            tgt_padding_mask: The target padding mask.
+            src (torch.Tensor): The source tensor.
+            tgt (torch.Tensor): The target tensor.
+            src_mask (torch.Tensor): The source mask.
+            tgt_mask (torch.Tensor): The target mask.
+            src_padding_mask (torch.Tensor): The source padding mask.
+            tgt_padding_mask (torch.Tensor): The target padding mask.
 
         Returns:
-            Tensor: The output tensor.
+            torch.Tensor: The output tensor.
         &#34;&#34;&#34;
 
         src_emb = self.positional_encoding(self.src_tok_emb(src))
@@ -188,16 +209,16 @@ class Seq2SeqTransformer(nn.Module):
         return self.generator(outs)
 
     @torch.jit.export
-    def encode(self, src: Tensor, src_mask: Tensor):
+    def encode(self, src: Tensor, src_mask: Tensor) -&gt; Tensor:
         &#34;&#34;&#34;
         Encode the input sequence.
 
         Args:
-            src (Tensor): The input tensor.
-            src_mask (Tensor): The input mask.
+            src (torch.Tensor): The input tensor.
+            src_mask (torch.Tensor): The input mask.
 
         Returns:
-            Tensor: The encoded tensor.
+            torch.Tensor: The encoded tensor.
         &#34;&#34;&#34;
 
         return self.transformer.encoder(
@@ -205,17 +226,17 @@ class Seq2SeqTransformer(nn.Module):
         )
 
     @torch.jit.export
-    def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
+    def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor) -&gt; Tensor:
         &#34;&#34;&#34;
         Decode the output sequence.
 
         Args:
-            tgt (Tensor): The target tensor.
-            memory (Tensor): The memory tensor.
-            tgt_mask (Tensor): The target mask.
+            tgt (torch.Tensor): The target tensor.
+            memory (torch.Tensor): The memory tensor.
+            tgt_mask (torch.Tensor): The target mask.
 
         Returns:
-            Tensor: The decoded tensor.
+            torch.Tensor: The decoded tensor.
         &#34;&#34;&#34;
 
         return self.transformer.decoder(
@@ -238,6 +259,12 @@ class Seq2SeqTransformer(nn.Module):
 </code></dt>
 <dd>
 <div class="desc"><p>Adds positional encoding to the token embedding to introduce a notion of word order.</p>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>dropout</code></strong> :&ensp;<code>nn.Dropout</code></dt>
+<dd>The dropout module.</dd>
+</dl>
 <p>Initialize the PositionalEncoding module.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -255,9 +282,14 @@ class Seq2SeqTransformer(nn.Module):
 <pre><code class="python">class PositionalEncoding(nn.Module):
     &#34;&#34;&#34;
     Adds positional encoding to the token embedding to introduce a notion of word order.
+    
+    ...
+    
+    Attributes:
+        dropout (nn.Dropout): The dropout module.
     &#34;&#34;&#34;
 
-    def __init__(self, emb_size: int, dropout: float, maxlen: int = 5000):
+    def __init__(self, emb_size: int, dropout: float, maxlen: int = 5000) -&gt; Tensor:
         &#34;&#34;&#34;
         Initialize the PositionalEncoding module.
 
@@ -283,10 +315,10 @@ class Seq2SeqTransformer(nn.Module):
         Forward pass of the PositionalEncoding module.
 
         Args:
-            token_embedding (Tensor): The token embedding tensor.
+            token_embedding (torch.Tensor): The token embedding tensor.
 
         Returns:
-            Tensor: The token embedding tensor with positional encoding added.
+            torch.Tensor: The token embedding tensor with positional encoding added.
         &#34;&#34;&#34;
 
         return self.dropout(
@@ -306,12 +338,12 @@ class Seq2SeqTransformer(nn.Module):
 <div class="desc"><p>Forward pass of the PositionalEncoding module.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>token_embedding</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>token_embedding</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The token embedding tensor.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Tensor</code></dt>
+<dt><code>torch.Tensor</code></dt>
 <dd>The token embedding tensor with positional encoding added.</dd>
 </dl></div>
 <details class="source">
@@ -323,10 +355,10 @@ class Seq2SeqTransformer(nn.Module):
     Forward pass of the PositionalEncoding module.
 
     Args:
-        token_embedding (Tensor): The token embedding tensor.
+        token_embedding (torch.Tensor): The token embedding tensor.
 
     Returns:
-        Tensor: The token embedding tensor with positional encoding added.
+        torch.Tensor: The token embedding tensor with positional encoding added.
     &#34;&#34;&#34;
 
     return self.dropout(
@@ -338,14 +370,28 @@ class Seq2SeqTransformer(nn.Module):
 </dd>
 <dt id="transformer.src.seq2seq_transformer.Seq2SeqTransformer"><code class="flex name class">
 <span>class <span class="ident">Seq2SeqTransformer</span></span>
-<span>(</span><span>model_config)</span>
+<span>(</span><span>model_config: utils.config.TransformerConfig)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Sequence-to-sequence transformer network.</p>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>transformer</code></strong> :&ensp;<code>Transformer</code></dt>
+<dd>The transformer module.</dd>
+<dt><strong><code>generator</code></strong> :&ensp;<code>nn.Linear</code></dt>
+<dd>The linear layer to generate the output token indices.</dd>
+<dt><strong><code>src_tok_emb</code></strong> :&ensp;<code><a title="transformer.src.seq2seq_transformer.TokenEmbedding" href="#transformer.src.seq2seq_transformer.TokenEmbedding">TokenEmbedding</a></code></dt>
+<dd>The source token embedding module.</dd>
+<dt><strong><code>tgt_tok_emb</code></strong> :&ensp;<code><a title="transformer.src.seq2seq_transformer.TokenEmbedding" href="#transformer.src.seq2seq_transformer.TokenEmbedding">TokenEmbedding</a></code></dt>
+<dd>The target token embedding module.</dd>
+<dt><strong><code>positional_encoding</code></strong> :&ensp;<code><a title="transformer.src.seq2seq_transformer.PositionalEncoding" href="#transformer.src.seq2seq_transformer.PositionalEncoding">PositionalEncoding</a></code></dt>
+<dd>The positional encoding module.</dd>
+</dl>
 <p>Initialize the Seq2SeqTransformer module.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>model_config</code></strong></dt>
+<dt><strong><code>model_config</code></strong> :&ensp;<code>ModelConfig</code></dt>
 <dd>The configuration for the model.</dd>
 </dl></div>
 <details class="source">
@@ -355,14 +401,23 @@ class Seq2SeqTransformer(nn.Module):
 <pre><code class="python">class Seq2SeqTransformer(nn.Module):
     &#34;&#34;&#34;
     Sequence-to-sequence transformer network.
+    
+    ...
+    
+    Attributes:
+        transformer (Transformer): The transformer module.
+        generator (nn.Linear): The linear layer to generate the output token indices.
+        src_tok_emb (TokenEmbedding): The source token embedding module.
+        tgt_tok_emb (TokenEmbedding): The target token embedding module.
+        positional_encoding (PositionalEncoding): The positional encoding module.
     &#34;&#34;&#34;
 
-    def __init__(self, model_config):
+    def __init__(self, model_config: TransformerConfig):
         &#34;&#34;&#34;
         Initialize the Seq2SeqTransformer module.
 
         Args:
-            model_config: The configuration for the model.
+            model_config (ModelConfig): The configuration for the model.
         &#34;&#34;&#34;
 
         super(Seq2SeqTransformer, self).__init__()
@@ -394,24 +449,24 @@ class Seq2SeqTransformer(nn.Module):
         self,
         src: Tensor,
         tgt: Tensor,
-        src_mask,
-        tgt_mask,
-        src_padding_mask,
-        tgt_padding_mask,
-    ):
+        src_mask: Tensor,
+        tgt_mask: Tensor,
+        src_padding_mask: Tensor,
+        tgt_padding_mask: Tensor,
+    ) -&gt; Tensor:
         &#34;&#34;&#34;
         Forward pass of the Seq2SeqTransformer module.
 
         Args:
-            src (Tensor): The source tensor.
-            tgt (Tensor): The target tensor.
-            src_mask: The source mask.
-            tgt_mask: The target mask.
-            src_padding_mask: The source padding mask.
-            tgt_padding_mask: The target padding mask.
+            src (torch.Tensor): The source tensor.
+            tgt (torch.Tensor): The target tensor.
+            src_mask (torch.Tensor): The source mask.
+            tgt_mask (torch.Tensor): The target mask.
+            src_padding_mask (torch.Tensor): The source padding mask.
+            tgt_padding_mask (torch.Tensor): The target padding mask.
 
         Returns:
-            Tensor: The output tensor.
+            torch.Tensor: The output tensor.
         &#34;&#34;&#34;
 
         src_emb = self.positional_encoding(self.src_tok_emb(src))
@@ -429,16 +484,16 @@ class Seq2SeqTransformer(nn.Module):
         return self.generator(outs)
 
     @torch.jit.export
-    def encode(self, src: Tensor, src_mask: Tensor):
+    def encode(self, src: Tensor, src_mask: Tensor) -&gt; Tensor:
         &#34;&#34;&#34;
         Encode the input sequence.
 
         Args:
-            src (Tensor): The input tensor.
-            src_mask (Tensor): The input mask.
+            src (torch.Tensor): The input tensor.
+            src_mask (torch.Tensor): The input mask.
 
         Returns:
-            Tensor: The encoded tensor.
+            torch.Tensor: The encoded tensor.
         &#34;&#34;&#34;
 
         return self.transformer.encoder(
@@ -446,17 +501,17 @@ class Seq2SeqTransformer(nn.Module):
         )
 
     @torch.jit.export
-    def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
+    def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor) -&gt; Tensor:
         &#34;&#34;&#34;
         Decode the output sequence.
 
         Args:
-            tgt (Tensor): The target tensor.
-            memory (Tensor): The memory tensor.
-            tgt_mask (Tensor): The target mask.
+            tgt (torch.Tensor): The target tensor.
+            memory (torch.Tensor): The memory tensor.
+            tgt_mask (torch.Tensor): The target mask.
 
         Returns:
-            Tensor: The decoded tensor.
+            torch.Tensor: The decoded tensor.
         &#34;&#34;&#34;
 
         return self.transformer.decoder(
@@ -470,22 +525,22 @@ class Seq2SeqTransformer(nn.Module):
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.seq2seq_transformer.Seq2SeqTransformer.decode"><code class="name flex">
-<span>def <span class="ident">decode</span></span>(<span>self, tgt: torch.Tensor, memory: torch.Tensor, tgt_mask: torch.Tensor)</span>
+<span>def <span class="ident">decode</span></span>(<span>self, tgt: torch.Tensor, memory: torch.Tensor, tgt_mask: torch.Tensor) ‑> torch.Tensor</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Decode the output sequence.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>tgt</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>tgt</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The target tensor.</dd>
-<dt><strong><code>memory</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>memory</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The memory tensor.</dd>
-<dt><strong><code>tgt_mask</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>tgt_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The target mask.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Tensor</code></dt>
+<dt><code>torch.Tensor</code></dt>
 <dd>The decoded tensor.</dd>
 </dl></div>
 <details class="source">
@@ -493,17 +548,17 @@ class Seq2SeqTransformer(nn.Module):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@torch.jit.export
-def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
+def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor) -&gt; Tensor:
     &#34;&#34;&#34;
     Decode the output sequence.
 
     Args:
-        tgt (Tensor): The target tensor.
-        memory (Tensor): The memory tensor.
-        tgt_mask (Tensor): The target mask.
+        tgt (torch.Tensor): The target tensor.
+        memory (torch.Tensor): The memory tensor.
+        tgt_mask (torch.Tensor): The target mask.
 
     Returns:
-        Tensor: The decoded tensor.
+        torch.Tensor: The decoded tensor.
     &#34;&#34;&#34;
 
     return self.transformer.decoder(
@@ -512,20 +567,20 @@ def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
 </details>
 </dd>
 <dt id="transformer.src.seq2seq_transformer.Seq2SeqTransformer.encode"><code class="name flex">
-<span>def <span class="ident">encode</span></span>(<span>self, src: torch.Tensor, src_mask: torch.Tensor)</span>
+<span>def <span class="ident">encode</span></span>(<span>self, src: torch.Tensor, src_mask: torch.Tensor) ‑> torch.Tensor</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Encode the input sequence.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>src</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>src</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The input tensor.</dd>
-<dt><strong><code>src_mask</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>src_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The input mask.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Tensor</code></dt>
+<dt><code>torch.Tensor</code></dt>
 <dd>The encoded tensor.</dd>
 </dl></div>
 <details class="source">
@@ -533,16 +588,16 @@ def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@torch.jit.export
-def encode(self, src: Tensor, src_mask: Tensor):
+def encode(self, src: Tensor, src_mask: Tensor) -&gt; Tensor:
     &#34;&#34;&#34;
     Encode the input sequence.
 
     Args:
-        src (Tensor): The input tensor.
-        src_mask (Tensor): The input mask.
+        src (torch.Tensor): The input tensor.
+        src_mask (torch.Tensor): The input mask.
 
     Returns:
-        Tensor: The encoded tensor.
+        torch.Tensor: The encoded tensor.
     &#34;&#34;&#34;
 
     return self.transformer.encoder(
@@ -551,28 +606,28 @@ def encode(self, src: Tensor, src_mask: Tensor):
 </details>
 </dd>
 <dt id="transformer.src.seq2seq_transformer.Seq2SeqTransformer.forward"><code class="name flex">
-<span>def <span class="ident">forward</span></span>(<span>self, src: torch.Tensor, tgt: torch.Tensor, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask) ‑> Callable[..., Any]</span>
+<span>def <span class="ident">forward</span></span>(<span>self, src: torch.Tensor, tgt: torch.Tensor, src_mask: torch.Tensor, tgt_mask: torch.Tensor, src_padding_mask: torch.Tensor, tgt_padding_mask: torch.Tensor) ‑> torch.Tensor</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forward pass of the Seq2SeqTransformer module.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>src</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>src</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The source tensor.</dd>
-<dt><strong><code>tgt</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>tgt</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The target tensor.</dd>
-<dt><strong><code>src_mask</code></strong></dt>
+<dt><strong><code>src_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The source mask.</dd>
-<dt><strong><code>tgt_mask</code></strong></dt>
+<dt><strong><code>tgt_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The target mask.</dd>
-<dt><strong><code>src_padding_mask</code></strong></dt>
+<dt><strong><code>src_padding_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The source padding mask.</dd>
-<dt><strong><code>tgt_padding_mask</code></strong></dt>
+<dt><strong><code>tgt_padding_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The target padding mask.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Tensor</code></dt>
+<dt><code>torch.Tensor</code></dt>
 <dd>The output tensor.</dd>
 </dl></div>
 <details class="source">
@@ -583,24 +638,24 @@ def encode(self, src: Tensor, src_mask: Tensor):
     self,
     src: Tensor,
     tgt: Tensor,
-    src_mask,
-    tgt_mask,
-    src_padding_mask,
-    tgt_padding_mask,
-):
+    src_mask: Tensor,
+    tgt_mask: Tensor,
+    src_padding_mask: Tensor,
+    tgt_padding_mask: Tensor,
+) -&gt; Tensor:
     &#34;&#34;&#34;
     Forward pass of the Seq2SeqTransformer module.
 
     Args:
-        src (Tensor): The source tensor.
-        tgt (Tensor): The target tensor.
-        src_mask: The source mask.
-        tgt_mask: The target mask.
-        src_padding_mask: The source padding mask.
-        tgt_padding_mask: The target padding mask.
+        src (torch.Tensor): The source tensor.
+        tgt (torch.Tensor): The target tensor.
+        src_mask (torch.Tensor): The source mask.
+        tgt_mask (torch.Tensor): The target mask.
+        src_padding_mask (torch.Tensor): The source padding mask.
+        tgt_padding_mask (torch.Tensor): The target padding mask.
 
     Returns:
-        Tensor: The output tensor.
+        torch.Tensor: The output tensor.
     &#34;&#34;&#34;
 
     src_emb = self.positional_encoding(self.src_tok_emb(src))
@@ -622,10 +677,18 @@ def encode(self, src: Tensor, src_mask: Tensor):
 </dd>
 <dt id="transformer.src.seq2seq_transformer.TokenEmbedding"><code class="flex name class">
 <span>class <span class="ident">TokenEmbedding</span></span>
-<span>(</span><span>vocab_size: int, emb_size)</span>
+<span>(</span><span>vocab_size: int, emb_size: int)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Converts tensor of input indices into corresponding tensor of token embeddings.</p>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>embedding</code></strong> :&ensp;<code>nn.Embedding</code></dt>
+<dd>The embedding layer.</dd>
+<dt><strong><code>emb_size</code></strong> :&ensp;<code>int</code></dt>
+<dd>The embedding size.</dd>
+</dl>
 <p>Initialize the TokenEmbedding module.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -641,9 +704,15 @@ def encode(self, src: Tensor, src_mask: Tensor):
 <pre><code class="python">class TokenEmbedding(nn.Module):
     &#34;&#34;&#34;
     Converts tensor of input indices into corresponding tensor of token embeddings.
+    
+    ...
+    
+    Attributes:
+        embedding (nn.Embedding): The embedding layer.
+        emb_size (int): The embedding size.
     &#34;&#34;&#34;
 
-    def __init__(self, vocab_size: int, emb_size):
+    def __init__(self, vocab_size: int, emb_size: int):
         &#34;&#34;&#34;
         Initialize the TokenEmbedding module.
 
@@ -656,15 +725,15 @@ def encode(self, src: Tensor, src_mask: Tensor):
         self.embedding = nn.Embedding(vocab_size, emb_size)
         self.emb_size = emb_size
 
-    def forward(self, tokens: Tensor):
+    def forward(self, tokens: Tensor) -&gt; Tensor:
         &#34;&#34;&#34;
         Forward pass of the TokenEmbedding module.
 
         Args:
-            tokens (Tensor): The input tensor of token indices.
+            tokens (torch.Tensor): The input tensor of token indices.
 
         Returns:
-            Tensor: The token embeddings.
+            torch.Tensor: The token embeddings.
         &#34;&#34;&#34;
 
         return self.embedding(tokens.long()) * math.sqrt(self.emb_size)</code></pre>
@@ -676,33 +745,33 @@ def encode(self, src: Tensor, src_mask: Tensor):
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.seq2seq_transformer.TokenEmbedding.forward"><code class="name flex">
-<span>def <span class="ident">forward</span></span>(<span>self, tokens: torch.Tensor) ‑> Callable[..., Any]</span>
+<span>def <span class="ident">forward</span></span>(<span>self, tokens: torch.Tensor) ‑> torch.Tensor</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forward pass of the TokenEmbedding module.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>tokens</code></strong> :&ensp;<code>Tensor</code></dt>
+<dt><strong><code>tokens</code></strong> :&ensp;<code>torch.Tensor</code></dt>
 <dd>The input tensor of token indices.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>Tensor</code></dt>
+<dt><code>torch.Tensor</code></dt>
 <dd>The token embeddings.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def forward(self, tokens: Tensor):
+<pre><code class="python">def forward(self, tokens: Tensor) -&gt; Tensor:
     &#34;&#34;&#34;
     Forward pass of the TokenEmbedding module.
 
     Args:
-        tokens (Tensor): The input tensor of token indices.
+        tokens (torch.Tensor): The input tensor of token indices.
 
     Returns:
-        Tensor: The token embeddings.
+        torch.Tensor: The token embeddings.
     &#34;&#34;&#34;
 
     return self.embedding(tokens.long()) * math.sqrt(self.emb_size)</code></pre>

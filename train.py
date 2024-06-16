@@ -64,14 +64,12 @@ def main(args):
     9. Trains the model and evaluates its performance.
     10. Demonstrates the model's translation capability with a test sequence.
 
-    Args:
-        args: Parsed command line arguments containing:
-            path_to_config (str): Path to the configuration YAML file.
-            run_id (str): Unique run identifier.
-            torch_device (str): Device to run the model on (e.g., 'cpu', 'cuda', etc.).
+    Parsed Args:
+        path_to_config (str): Path to the configuration YAML file.
+        run_id (str): Unique run identifier.
+        torch_device (str): Device to run the model on (e.g., 'cpu', 'cuda', etc.).
     Raises:
           SystemExit: If the specified run ID already exists.
-
     """
     path_to_config: str = args.path_to_config
     run_id: str = args.run_id

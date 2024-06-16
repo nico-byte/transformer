@@ -27,6 +27,7 @@ class SharedConfig(BaseModel):
         tgt_language (str): The target language.
         run_id (str): The run ID for the model.
     """
+
     special_symbols: List[str] = ["<unk>", "<bos>", "<eos>", "<pad>"]
     src_language: str = "en"
     tgt_language: str = "de"
@@ -45,6 +46,7 @@ class DataLoaderConfig(PydanticBaseModel):
         drop_last (bool): Whether to drop the last batch or not.
         shuffle (bool): Whether to shuffle the data or not.
     """
+
     dataset: str = "iwslt2017"
     batch_size: int = 128
     num_workers: int = 2
@@ -67,6 +69,7 @@ class TransformerConfig(PydanticBaseModel):
         dim_feedforward (int): Size of the feedforward network.
         dropout (float): Dropout probability.
     """
+
     num_encoder_layers: int
     num_decoder_layers: int
     emb_size: int

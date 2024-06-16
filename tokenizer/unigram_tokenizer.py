@@ -13,12 +13,8 @@ import random
 
 
 def build_tokenizer(
-    name: str,
-    run_id: str,
-    src_dataset: List[str],
-    tgt_dataset: List[str],
-    vocab_size: int,
-):
+    run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int
+) -> Tokenizer:
     """
     Build and train a tokenizer on the provided source and target datasets.
 
@@ -30,7 +26,7 @@ def build_tokenizer(
         vocab_size (int): The vocabulary size for the tokenizer.
 
     Returns:
-        Tokenizer: The trained tokenizer.
+        tokenizers.Tokenizer: The trained tokenizer.
 
     The function combines the source and target datasets, shuffles them, and trains a unigram tokenizer.
     The tokenizer is configured with normalization, pre-tokenization, and post-processing steps, and is then saved
@@ -65,12 +61,12 @@ def build_tokenizer(
     if not os.path.exists(f"./models/{run_id}/"):
         os.makedirs(f"./models/{run_id}/")
 
-    tokenizer.save(f"./models/{run_id}/tokenizer-{name}.json")
+    tokenizer.save(f"./models/{run_id}/tokenizer.json")
 
     return tokenizer
 
 
-def batch_iterator(dataset, batch_size=1000):
+def batch_iterator(dataset: List[str], batch_size: int = 1000):
     """
     Batch iterator to yield batches of data from the dataset.
 

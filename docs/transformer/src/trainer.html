@@ -27,7 +27,7 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import sys
-from typing import List
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -36,16 +36,31 @@ import matplotlib.pyplot as plt
 from evaluate import load as load_metric
 from src.seq2seq_transformer import Seq2SeqTransformer
 from utils.config import TrainerConfig
+from src.processor import Processor
 from time import perf_counter
 from utils.logger import get_logger
+from tokenizers import Tokenizer
 
 
 class InverseSquareRootLRScheduler:
     &#34;&#34;&#34;
     Implements a learning rate scheduler with inverse square root decay.
+    
+    ...
+    
+    Attributes:
+        optimizer (torch.optim): The optimizer to adjust the learning rate for.
+        init_lr (float): The initial learning rate.
+        max_lr (float): The maximum learning rate.
+        n_warmup_steps (int): The number of warmup steps.
+        lr_step (float): The learning rate step.
+        decay_factor (float): The decay factor.
+        n_steps (int): The number of steps.
     &#34;&#34;&#34;
 
-    def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps):
+    def __init__(
+        self, optimizer: torch.optim, init_lr: float, max_lr: float, n_warmup_steps: int
+    ):
         &#34;&#34;&#34;
         Initialize the scheduler.
 
@@ -79,7 +94,7 @@ class InverseSquareRootLRScheduler:
         for param_group in self.optimizer.param_groups:
             param_group[&#34;lr&#34;] = self.lr
 
-    def get_lr(self):
+    def get_lr(self) -&gt; float:
         &#34;&#34;&#34;
         Get the current learning rate.
         &#34;&#34;&#34;
@@ -90,28 +105,49 @@ class InverseSquareRootLRScheduler:
 class LinearWarmupDecayLRScheduler:
     &#34;&#34;&#34;
     Implements a learning rate scheduler with linear warmup and decay.
+    
+    ...
+    
+    Attributes:
+        optimizer (torch.optim): The optimizer to adjust the learning rate for.
+        init_lr (float): The initial learning rate.
+        max_lr (float): The maximum learning rate.
+        n_warmup_steps (int): The number of warmup steps.
+        total_steps (int): The total number of steps.
+        lr_step (float): The learning rate step.
+        decay_factor (float): The decay factor.
     &#34;&#34;&#34;
 
-    def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps, total_steps):
+    def __init__(
+        self,
+        optimizer: torch.optim,
+        init_lr,
+        max_lr: float,
+        n_warmup_steps: int,
+        total_steps: int,
+    ):
         &#34;&#34;&#34;
         Initialize the scheduler.
 
         Args:
-            optimizer: The optimizer to adjust the learning rate for.
+            optimizer (torch.optim): The optimizer to adjust the learning rate for.
             init_lr (float): The initial learning rate.
             max_lr (float): The maximum learning rate.
-            n_warmup_steps (int): The number of warmup steps.
             total_steps (int): The total number of steps.
+            n_warmup_steps (int): The number of warmup steps.
+            warmup_lr_step (float): The learning rate step for the warmup phase.
+            n_decay_steps (int): The number of decay steps.
+            n_steps (int): The number of steps.
         &#34;&#34;&#34;
 
         self.optimizer = optimizer
-        self.n_steps = 0
         self.init_lr = init_lr
         self.max_lr = max_lr
-        self.n_warmup_steps = n_warmup_steps
         self.total_steps = total_steps
-        self.n_decay_steps = total_steps - n_warmup_steps
+        self.n_warmup_steps = n_warmup_steps
         self.warmup_lr_step = (max_lr - init_lr) / n_warmup_steps
+        self.n_decay_steps = total_steps - n_warmup_steps
+        self.n_steps = 0
 
     def step(self):
         &#34;&#34;&#34;
@@ -132,7 +168,7 @@ class LinearWarmupDecayLRScheduler:
         for param_group in self.optimizer.param_groups:
             param_group[&#34;lr&#34;] = self.lr
 
-    def get_lr(self):
+    def get_lr(self) -&gt; float:
         &#34;&#34;&#34;
         Get the current learning rate.
         &#34;&#34;&#34;
@@ -143,6 +179,16 @@ class LinearWarmupDecayLRScheduler:
 class EarlyStopper:
     &#34;&#34;&#34;
     Implements early stopping to prevent overfitting during training.
+    
+    ...
+    
+    Attributes:
+        warmup (int): The number of warmup epochs.
+        patience (int): The number of epochs to wait before stopping.
+        min_delta (int): The minimum change in validation loss to qualify as an improvement.
+        counter (int): The number of epochs without improvement.
+        min_validation_loss (float): The minimum validation loss.
+        logger (logging.Logger): The logger.
     &#34;&#34;&#34;
 
     def __init__(self, warmup: int = 5, patience: int = 1, min_delta: int = 0):
@@ -162,7 +208,7 @@ class EarlyStopper:
         self.min_validation_loss: float = float(&#34;inf&#34;)
         self.logger = get_logger(&#34;EarlyStopper&#34;)
 
-    def early_stop(self, epoch, validation_loss):
+    def early_stop(self, epoch: int, validation_loss: float) -&gt; bool:
         &#34;&#34;&#34;
         Check if early stopping criterion is met.
 
@@ -190,7 +236,31 @@ class EarlyStopper:
 
 
 class Trainer:
-    def __init__(self, device):
+    &#34;&#34;&#34;
+    Implements a trainer for a sequence-to-sequence model.
+    
+    ...
+    
+    Attributes:
+        logger (logging.Logger): The logger.
+        device (torch.device): The device to use.
+        train_loss_values (list): The list of training loss values.
+        test_loss_values (list): The list of test loss values.
+        learning_rate_values (list): The list of learning rate values.
+        test_loss_steps (list): The list of test loss steps.
+        use_amp (bool): Whether to use automatic mixed precision.
+        scaler (torch.cuda.amp.GradScaler): The gradient scaler.
+        dataloaders (dict): The dataloaders.
+    &#34;&#34;&#34;
+    def __init__(self, device: torch.device):
+        &#34;&#34;&#34;
+        Initialize the trainer.
+        
+        ...
+        
+        Args:
+            device (torch.device): The device to use.
+        &#34;&#34;&#34;
         self.logger = get_logger(&#34;Trainer&#34;)
 
         self.device = device
@@ -208,26 +278,26 @@ class Trainer:
     def new_instance(
         cls,
         model: Seq2SeqTransformer,
-        translator,
+        translator: Processor,
         train_dataloader,
         test_dataloader,
         val_dataloader,
-        tokenizer,
-        early_stopper,
-        trainer_config,
-        device,
-        run_id,
+        tokenizer: Tokenizer,
+        early_stopper: EarlyStopper,
+        trainer_config: TrainerConfig,
+        device: torch.device,
+        run_id: str,
     ):
         &#34;&#34;&#34;
         Creates a new instance of the Trainer class with the provided configuration.
 
         Args:
             model (Seq2SeqTransformer): The sequence-to-sequence transformer model.
-            translator: The translator object used for the model.
+            translator (src.Processor): The translator object used for the model.
             train_dataloader: The training data loader.
             test_dataloader: The test data loader.
             val_dataloader: The validation data loader.
-            tokenizer: The tokenizer used for the model.
+            tokenizer (tokenizers.Tokenizer): The tokenizer used for the model.
             early_stopper (EarlyStopper): The early stopping object.
             trainer_config (TrainerConfig): The configuration for the trainer.
             device (torch.device): The device to use for training.
@@ -307,18 +377,18 @@ class Trainer:
         checkpoint_path: str,
         tokenizer_path: str,
         val_dataloader: str,
-        translator,
-        device,
+        translator: Processor,
+        device: torch.device,
     ):
         &#34;&#34;&#34;
         Evaluates a trained model checkpoint on the validation dataset.
 
         Args:
-        checkpoint_path (str): The path to the saved model checkpoint.
-        tokenizer_path (str): The path to the saved tokenizer.
-        val_dataloader (str): The validation data loader.
-        translator: The translator object used for the model.
-        device (torch.device): The device to use for evaluation.
+            checkpoint_path (str): The path to the saved model checkpoint.
+            tokenizer_path (str): The path to the saved tokenizer.
+            val_dataloader (str): The validation data loader.
+            translator (Processor): The translator object used for the model.
+            device (torch.device): The device to use for evaluation.
 
         Returns:
             Tuple[float, float]: The BLEU and ROUGE scores for the evaluated model.
@@ -436,7 +506,7 @@ class Trainer:
 
         return losses / len(list(self.dataloaders[&#34;test&#34;]))
 
-    def evaluate(self, inference: bool = False) -&gt; float:
+    def evaluate(self, inference: bool = False) -&gt; Tuple[float, float]:
         &#34;&#34;&#34;
         Evaluate the model on the validation set and compute the average BLEU and ROUGE scores.
 
@@ -515,7 +585,6 @@ class Trainer:
         &#34;&#34;&#34;
         Train the model until convergence or early stopping.
         &#34;&#34;&#34;
-
         try:
             for epoch in range(self.current_epoch, self.num_epochs + 1):
                 start_time = perf_counter()
@@ -558,7 +627,7 @@ class Trainer:
         Save the model checkpoint.
 
         Args:
-            name: The name of the model checkpoint. Defaults to &#34;&#34;.
+            name (str): The name of the model checkpoint. Defaults to &#34;&#34;.
         &#34;&#34;&#34;
 
         self._save_model_infer(name)
@@ -569,7 +638,7 @@ class Trainer:
         Save the model checkpoint for inference.
 
         Args:
-            name: The name of the model checkpoint. Defaults to &#34;&#34;.
+            name (str): The name of the model checkpoint. Defaults to &#34;&#34;.
         &#34;&#34;&#34;
 
         model_filepath = f&#34;./models/{self.run_id}/{name}checkpoint_scripted.pt&#34;
@@ -583,7 +652,7 @@ class Trainer:
         Save the model checkpoint for further training.
 
         Args:
-            name: The name of the model checkpoint. Defaults to &#34;&#34;.
+            name(str): The name of the model checkpoint. Defaults to &#34;&#34;.
         &#34;&#34;&#34;
 
         model_filepath = f&#34;./models/{self.run_id}/{name}checkpoint.pt&#34;
@@ -612,13 +681,6 @@ class Trainer:
     def _plot(self):
         &#34;&#34;&#34;
         Plot the learning rate, training loss, and test loss metrics during training.
-
-        This method creates three separate plots:
-        1. Learning Rate: Plots the learning rate values over the training steps, with a vertical line indicating the end of the warmup phase.
-        2. Training Loss: Plots the training loss values over the training steps, with a vertical line indicating the end of the warmup phase.
-        3. Test Loss: Plots the test loss values over the training epochs, with a vertical line indicating the end of the warmup phase.
-
-        The plots are saved to the `./models/{self.run_id}/metrics/` directory.
         &#34;&#34;&#34;
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))
@@ -715,6 +777,22 @@ class Trainer:
 </code></dt>
 <dd>
 <div class="desc"><p>Implements early stopping to prevent overfitting during training.</p>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>warmup</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of warmup epochs.</dd>
+<dt><strong><code>patience</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of epochs to wait before stopping.</dd>
+<dt><strong><code>min_delta</code></strong> :&ensp;<code>int</code></dt>
+<dd>The minimum change in validation loss to qualify as an improvement.</dd>
+<dt><strong><code>counter</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of epochs without improvement.</dd>
+<dt><strong><code>min_validation_loss</code></strong> :&ensp;<code>float</code></dt>
+<dd>The minimum validation loss.</dd>
+<dt><strong><code>logger</code></strong> :&ensp;<code>logging.Logger</code></dt>
+<dd>The logger.</dd>
+</dl>
 <p>Initialize the early stopper.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -732,6 +810,16 @@ class Trainer:
 <pre><code class="python">class EarlyStopper:
     &#34;&#34;&#34;
     Implements early stopping to prevent overfitting during training.
+    
+    ...
+    
+    Attributes:
+        warmup (int): The number of warmup epochs.
+        patience (int): The number of epochs to wait before stopping.
+        min_delta (int): The minimum change in validation loss to qualify as an improvement.
+        counter (int): The number of epochs without improvement.
+        min_validation_loss (float): The minimum validation loss.
+        logger (logging.Logger): The logger.
     &#34;&#34;&#34;
 
     def __init__(self, warmup: int = 5, patience: int = 1, min_delta: int = 0):
@@ -751,7 +839,7 @@ class Trainer:
         self.min_validation_loss: float = float(&#34;inf&#34;)
         self.logger = get_logger(&#34;EarlyStopper&#34;)
 
-    def early_stop(self, epoch, validation_loss):
+    def early_stop(self, epoch: int, validation_loss: float) -&gt; bool:
         &#34;&#34;&#34;
         Check if early stopping criterion is met.
 
@@ -780,7 +868,7 @@ class Trainer:
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.trainer.EarlyStopper.early_stop"><code class="name flex">
-<span>def <span class="ident">early_stop</span></span>(<span>self, epoch, validation_loss)</span>
+<span>def <span class="ident">early_stop</span></span>(<span>self, epoch: int, validation_loss: float) ‑> bool</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Check if early stopping criterion is met.</p>
@@ -800,7 +888,7 @@ class Trainer:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def early_stop(self, epoch, validation_loss):
+<pre><code class="python">def early_stop(self, epoch: int, validation_loss: float) -&gt; bool:
     &#34;&#34;&#34;
     Check if early stopping criterion is met.
 
@@ -831,10 +919,28 @@ class Trainer:
 </dd>
 <dt id="transformer.src.trainer.InverseSquareRootLRScheduler"><code class="flex name class">
 <span>class <span class="ident">InverseSquareRootLRScheduler</span></span>
-<span>(</span><span>optimizer, init_lr, max_lr, n_warmup_steps)</span>
+<span>(</span><span>optimizer: <module 'torch.optim' from '/Users/nicofuchs/Coding/python/<a title="transformer" href="../index.html">transformer</a>/.venv/lib/python3.10/site-packages/torch/optim/__init__.py'>, init_lr: float, max_lr: float, n_warmup_steps: int)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Implements a learning rate scheduler with inverse square root decay.</p>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>optimizer</code></strong> :&ensp;<code>torch.optim</code></dt>
+<dd>The optimizer to adjust the learning rate for.</dd>
+<dt><strong><code>init_lr</code></strong> :&ensp;<code>float</code></dt>
+<dd>The initial learning rate.</dd>
+<dt><strong><code>max_lr</code></strong> :&ensp;<code>float</code></dt>
+<dd>The maximum learning rate.</dd>
+<dt><strong><code>n_warmup_steps</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of warmup steps.</dd>
+<dt><strong><code>lr_step</code></strong> :&ensp;<code>float</code></dt>
+<dd>The learning rate step.</dd>
+<dt><strong><code>decay_factor</code></strong> :&ensp;<code>float</code></dt>
+<dd>The decay factor.</dd>
+<dt><strong><code>n_steps</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of steps.</dd>
+</dl>
 <p>Initialize the scheduler.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -854,9 +960,22 @@ class Trainer:
 <pre><code class="python">class InverseSquareRootLRScheduler:
     &#34;&#34;&#34;
     Implements a learning rate scheduler with inverse square root decay.
+    
+    ...
+    
+    Attributes:
+        optimizer (torch.optim): The optimizer to adjust the learning rate for.
+        init_lr (float): The initial learning rate.
+        max_lr (float): The maximum learning rate.
+        n_warmup_steps (int): The number of warmup steps.
+        lr_step (float): The learning rate step.
+        decay_factor (float): The decay factor.
+        n_steps (int): The number of steps.
     &#34;&#34;&#34;
 
-    def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps):
+    def __init__(
+        self, optimizer: torch.optim, init_lr: float, max_lr: float, n_warmup_steps: int
+    ):
         &#34;&#34;&#34;
         Initialize the scheduler.
 
@@ -890,7 +1009,7 @@ class Trainer:
         for param_group in self.optimizer.param_groups:
             param_group[&#34;lr&#34;] = self.lr
 
-    def get_lr(self):
+    def get_lr(self) -&gt; float:
         &#34;&#34;&#34;
         Get the current learning rate.
         &#34;&#34;&#34;
@@ -900,7 +1019,7 @@ class Trainer:
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.trainer.InverseSquareRootLRScheduler.get_lr"><code class="name flex">
-<span>def <span class="ident">get_lr</span></span>(<span>self)</span>
+<span>def <span class="ident">get_lr</span></span>(<span>self) ‑> float</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Get the current learning rate.</p></div>
@@ -908,7 +1027,7 @@ class Trainer:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_lr(self):
+<pre><code class="python">def get_lr(self) -&gt; float:
     &#34;&#34;&#34;
     Get the current learning rate.
     &#34;&#34;&#34;
@@ -945,14 +1064,14 @@ class Trainer:
 </dd>
 <dt id="transformer.src.trainer.LinearWarmupDecayLRScheduler"><code class="flex name class">
 <span>class <span class="ident">LinearWarmupDecayLRScheduler</span></span>
-<span>(</span><span>optimizer, init_lr, max_lr, n_warmup_steps, total_steps)</span>
+<span>(</span><span>optimizer: <module 'torch.optim' from '/Users/nicofuchs/Coding/python/<a title="transformer" href="../index.html">transformer</a>/.venv/lib/python3.10/site-packages/torch/optim/__init__.py'>, init_lr, max_lr: float, n_warmup_steps: int, total_steps: int)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Implements a learning rate scheduler with linear warmup and decay.</p>
-<p>Initialize the scheduler.</p>
-<h2 id="args">Args</h2>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt><strong><code>optimizer</code></strong></dt>
+<dt><strong><code>optimizer</code></strong> :&ensp;<code>torch.optim</code></dt>
 <dd>The optimizer to adjust the learning rate for.</dd>
 <dt><strong><code>init_lr</code></strong> :&ensp;<code>float</code></dt>
 <dd>The initial learning rate.</dd>
@@ -962,6 +1081,30 @@ class Trainer:
 <dd>The number of warmup steps.</dd>
 <dt><strong><code>total_steps</code></strong> :&ensp;<code>int</code></dt>
 <dd>The total number of steps.</dd>
+<dt><strong><code>lr_step</code></strong> :&ensp;<code>float</code></dt>
+<dd>The learning rate step.</dd>
+<dt><strong><code>decay_factor</code></strong> :&ensp;<code>float</code></dt>
+<dd>The decay factor.</dd>
+</dl>
+<p>Initialize the scheduler.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>optimizer</code></strong> :&ensp;<code>torch.optim</code></dt>
+<dd>The optimizer to adjust the learning rate for.</dd>
+<dt><strong><code>init_lr</code></strong> :&ensp;<code>float</code></dt>
+<dd>The initial learning rate.</dd>
+<dt><strong><code>max_lr</code></strong> :&ensp;<code>float</code></dt>
+<dd>The maximum learning rate.</dd>
+<dt><strong><code>total_steps</code></strong> :&ensp;<code>int</code></dt>
+<dd>The total number of steps.</dd>
+<dt><strong><code>n_warmup_steps</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of warmup steps.</dd>
+<dt><strong><code>warmup_lr_step</code></strong> :&ensp;<code>float</code></dt>
+<dd>The learning rate step for the warmup phase.</dd>
+<dt><strong><code>n_decay_steps</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of decay steps.</dd>
+<dt><strong><code>n_steps</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of steps.</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -970,28 +1113,49 @@ class Trainer:
 <pre><code class="python">class LinearWarmupDecayLRScheduler:
     &#34;&#34;&#34;
     Implements a learning rate scheduler with linear warmup and decay.
+    
+    ...
+    
+    Attributes:
+        optimizer (torch.optim): The optimizer to adjust the learning rate for.
+        init_lr (float): The initial learning rate.
+        max_lr (float): The maximum learning rate.
+        n_warmup_steps (int): The number of warmup steps.
+        total_steps (int): The total number of steps.
+        lr_step (float): The learning rate step.
+        decay_factor (float): The decay factor.
     &#34;&#34;&#34;
 
-    def __init__(self, optimizer, init_lr, max_lr, n_warmup_steps, total_steps):
+    def __init__(
+        self,
+        optimizer: torch.optim,
+        init_lr,
+        max_lr: float,
+        n_warmup_steps: int,
+        total_steps: int,
+    ):
         &#34;&#34;&#34;
         Initialize the scheduler.
 
         Args:
-            optimizer: The optimizer to adjust the learning rate for.
+            optimizer (torch.optim): The optimizer to adjust the learning rate for.
             init_lr (float): The initial learning rate.
             max_lr (float): The maximum learning rate.
-            n_warmup_steps (int): The number of warmup steps.
             total_steps (int): The total number of steps.
+            n_warmup_steps (int): The number of warmup steps.
+            warmup_lr_step (float): The learning rate step for the warmup phase.
+            n_decay_steps (int): The number of decay steps.
+            n_steps (int): The number of steps.
         &#34;&#34;&#34;
 
         self.optimizer = optimizer
-        self.n_steps = 0
         self.init_lr = init_lr
         self.max_lr = max_lr
-        self.n_warmup_steps = n_warmup_steps
         self.total_steps = total_steps
-        self.n_decay_steps = total_steps - n_warmup_steps
+        self.n_warmup_steps = n_warmup_steps
         self.warmup_lr_step = (max_lr - init_lr) / n_warmup_steps
+        self.n_decay_steps = total_steps - n_warmup_steps
+        self.n_steps = 0
 
     def step(self):
         &#34;&#34;&#34;
@@ -1012,7 +1176,7 @@ class Trainer:
         for param_group in self.optimizer.param_groups:
             param_group[&#34;lr&#34;] = self.lr
 
-    def get_lr(self):
+    def get_lr(self) -&gt; float:
         &#34;&#34;&#34;
         Get the current learning rate.
         &#34;&#34;&#34;
@@ -1022,7 +1186,7 @@ class Trainer:
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.trainer.LinearWarmupDecayLRScheduler.get_lr"><code class="name flex">
-<span>def <span class="ident">get_lr</span></span>(<span>self)</span>
+<span>def <span class="ident">get_lr</span></span>(<span>self) ‑> float</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Get the current learning rate.</p></div>
@@ -1030,7 +1194,7 @@ class Trainer:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_lr(self):
+<pre><code class="python">def get_lr(self) -&gt; float:
     &#34;&#34;&#34;
     Get the current learning rate.
     &#34;&#34;&#34;
@@ -1071,16 +1235,69 @@ class Trainer:
 </dd>
 <dt id="transformer.src.trainer.Trainer"><code class="flex name class">
 <span>class <span class="ident">Trainer</span></span>
-<span>(</span><span>device)</span>
+<span>(</span><span>device: torch.device)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Implements a trainer for a sequence-to-sequence model.</p>
+<p>&hellip;</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>logger</code></strong> :&ensp;<code>logging.Logger</code></dt>
+<dd>The logger.</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
+<dd>The device to use.</dd>
+<dt><strong><code>train_loss_values</code></strong> :&ensp;<code>list</code></dt>
+<dd>The list of training loss values.</dd>
+<dt><strong><code>test_loss_values</code></strong> :&ensp;<code>list</code></dt>
+<dd>The list of test loss values.</dd>
+<dt><strong><code>learning_rate_values</code></strong> :&ensp;<code>list</code></dt>
+<dd>The list of learning rate values.</dd>
+<dt><strong><code>test_loss_steps</code></strong> :&ensp;<code>list</code></dt>
+<dd>The list of test loss steps.</dd>
+<dt><strong><code>use_amp</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Whether to use automatic mixed precision.</dd>
+<dt><strong><code>scaler</code></strong> :&ensp;<code>torch.cuda.amp.GradScaler</code></dt>
+<dd>The gradient scaler.</dd>
+<dt><strong><code>dataloaders</code></strong> :&ensp;<code>dict</code></dt>
+<dd>The dataloaders.</dd>
+</dl>
+<p>Initialize the trainer.</p>
+<p>&hellip;</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
+<dd>The device to use.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Trainer:
-    def __init__(self, device):
+    &#34;&#34;&#34;
+    Implements a trainer for a sequence-to-sequence model.
+    
+    ...
+    
+    Attributes:
+        logger (logging.Logger): The logger.
+        device (torch.device): The device to use.
+        train_loss_values (list): The list of training loss values.
+        test_loss_values (list): The list of test loss values.
+        learning_rate_values (list): The list of learning rate values.
+        test_loss_steps (list): The list of test loss steps.
+        use_amp (bool): Whether to use automatic mixed precision.
+        scaler (torch.cuda.amp.GradScaler): The gradient scaler.
+        dataloaders (dict): The dataloaders.
+    &#34;&#34;&#34;
+    def __init__(self, device: torch.device):
+        &#34;&#34;&#34;
+        Initialize the trainer.
+        
+        ...
+        
+        Args:
+            device (torch.device): The device to use.
+        &#34;&#34;&#34;
         self.logger = get_logger(&#34;Trainer&#34;)
 
         self.device = device
@@ -1098,26 +1315,26 @@ class Trainer:
     def new_instance(
         cls,
         model: Seq2SeqTransformer,
-        translator,
+        translator: Processor,
         train_dataloader,
         test_dataloader,
         val_dataloader,
-        tokenizer,
-        early_stopper,
-        trainer_config,
-        device,
-        run_id,
+        tokenizer: Tokenizer,
+        early_stopper: EarlyStopper,
+        trainer_config: TrainerConfig,
+        device: torch.device,
+        run_id: str,
     ):
         &#34;&#34;&#34;
         Creates a new instance of the Trainer class with the provided configuration.
 
         Args:
             model (Seq2SeqTransformer): The sequence-to-sequence transformer model.
-            translator: The translator object used for the model.
+            translator (src.Processor): The translator object used for the model.
             train_dataloader: The training data loader.
             test_dataloader: The test data loader.
             val_dataloader: The validation data loader.
-            tokenizer: The tokenizer used for the model.
+            tokenizer (tokenizers.Tokenizer): The tokenizer used for the model.
             early_stopper (EarlyStopper): The early stopping object.
             trainer_config (TrainerConfig): The configuration for the trainer.
             device (torch.device): The device to use for training.
@@ -1197,18 +1414,18 @@ class Trainer:
         checkpoint_path: str,
         tokenizer_path: str,
         val_dataloader: str,
-        translator,
-        device,
+        translator: Processor,
+        device: torch.device,
     ):
         &#34;&#34;&#34;
         Evaluates a trained model checkpoint on the validation dataset.
 
         Args:
-        checkpoint_path (str): The path to the saved model checkpoint.
-        tokenizer_path (str): The path to the saved tokenizer.
-        val_dataloader (str): The validation data loader.
-        translator: The translator object used for the model.
-        device (torch.device): The device to use for evaluation.
+            checkpoint_path (str): The path to the saved model checkpoint.
+            tokenizer_path (str): The path to the saved tokenizer.
+            val_dataloader (str): The validation data loader.
+            translator (Processor): The translator object used for the model.
+            device (torch.device): The device to use for evaluation.
 
         Returns:
             Tuple[float, float]: The BLEU and ROUGE scores for the evaluated model.
@@ -1326,7 +1543,7 @@ class Trainer:
 
         return losses / len(list(self.dataloaders[&#34;test&#34;]))
 
-    def evaluate(self, inference: bool = False) -&gt; float:
+    def evaluate(self, inference: bool = False) -&gt; Tuple[float, float]:
         &#34;&#34;&#34;
         Evaluate the model on the validation set and compute the average BLEU and ROUGE scores.
 
@@ -1405,7 +1622,6 @@ class Trainer:
         &#34;&#34;&#34;
         Train the model until convergence or early stopping.
         &#34;&#34;&#34;
-
         try:
             for epoch in range(self.current_epoch, self.num_epochs + 1):
                 start_time = perf_counter()
@@ -1448,7 +1664,7 @@ class Trainer:
         Save the model checkpoint.
 
         Args:
-            name: The name of the model checkpoint. Defaults to &#34;&#34;.
+            name (str): The name of the model checkpoint. Defaults to &#34;&#34;.
         &#34;&#34;&#34;
 
         self._save_model_infer(name)
@@ -1459,7 +1675,7 @@ class Trainer:
         Save the model checkpoint for inference.
 
         Args:
-            name: The name of the model checkpoint. Defaults to &#34;&#34;.
+            name (str): The name of the model checkpoint. Defaults to &#34;&#34;.
         &#34;&#34;&#34;
 
         model_filepath = f&#34;./models/{self.run_id}/{name}checkpoint_scripted.pt&#34;
@@ -1473,7 +1689,7 @@ class Trainer:
         Save the model checkpoint for further training.
 
         Args:
-            name: The name of the model checkpoint. Defaults to &#34;&#34;.
+            name(str): The name of the model checkpoint. Defaults to &#34;&#34;.
         &#34;&#34;&#34;
 
         model_filepath = f&#34;./models/{self.run_id}/{name}checkpoint.pt&#34;
@@ -1502,13 +1718,6 @@ class Trainer:
     def _plot(self):
         &#34;&#34;&#34;
         Plot the learning rate, training loss, and test loss metrics during training.
-
-        This method creates three separate plots:
-        1. Learning Rate: Plots the learning rate values over the training steps, with a vertical line indicating the end of the warmup phase.
-        2. Training Loss: Plots the training loss values over the training steps, with a vertical line indicating the end of the warmup phase.
-        3. Test Loss: Plots the test loss values over the training epochs, with a vertical line indicating the end of the warmup phase.
-
-        The plots are saved to the `./models/{self.run_id}/metrics/` directory.
         &#34;&#34;&#34;
         # Plot the learning rate function
         plt.figure(figsize=(8, 6))
@@ -1606,16 +1815,23 @@ def continue_training(cls, *args, **kwargs):
 </details>
 </dd>
 <dt id="transformer.src.trainer.Trainer.evaluate_checkpoint"><code class="name flex">
-<span>def <span class="ident">evaluate_checkpoint</span></span>(<span>checkpoint_path: str, tokenizer_path: str, val_dataloader: str, translator, device)</span>
+<span>def <span class="ident">evaluate_checkpoint</span></span>(<span>checkpoint_path: str, tokenizer_path: str, val_dataloader: str, translator: src.processor.Processor, device: torch.device)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Evaluates a trained model checkpoint on the validation dataset.</p>
-<p>Args:
-checkpoint_path (str): The path to the saved model checkpoint.
-tokenizer_path (str): The path to the saved tokenizer.
-val_dataloader (str): The validation data loader.
-translator: The translator object used for the model.
-device (torch.device): The device to use for evaluation.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>checkpoint_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>The path to the saved model checkpoint.</dd>
+<dt><strong><code>tokenizer_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>The path to the saved tokenizer.</dd>
+<dt><strong><code>val_dataloader</code></strong> :&ensp;<code>str</code></dt>
+<dd>The validation data loader.</dd>
+<dt><strong><code>translator</code></strong> :&ensp;<code>Processor</code></dt>
+<dd>The translator object used for the model.</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
+<dd>The device to use for evaluation.</dd>
+</dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>Tuple[float, float]</code></dt>
@@ -1631,18 +1847,18 @@ def evaluate_checkpoint(
     checkpoint_path: str,
     tokenizer_path: str,
     val_dataloader: str,
-    translator,
-    device,
+    translator: Processor,
+    device: torch.device,
 ):
     &#34;&#34;&#34;
     Evaluates a trained model checkpoint on the validation dataset.
 
     Args:
-    checkpoint_path (str): The path to the saved model checkpoint.
-    tokenizer_path (str): The path to the saved tokenizer.
-    val_dataloader (str): The validation data loader.
-    translator: The translator object used for the model.
-    device (torch.device): The device to use for evaluation.
+        checkpoint_path (str): The path to the saved model checkpoint.
+        tokenizer_path (str): The path to the saved tokenizer.
+        val_dataloader (str): The validation data loader.
+        translator (Processor): The translator object used for the model.
+        device (torch.device): The device to use for evaluation.
 
     Returns:
         Tuple[float, float]: The BLEU and ROUGE scores for the evaluated model.
@@ -1661,7 +1877,7 @@ def evaluate_checkpoint(
 </details>
 </dd>
 <dt id="transformer.src.trainer.Trainer.new_instance"><code class="name flex">
-<span>def <span class="ident">new_instance</span></span>(<span>model: src.seq2seq_transformer.Seq2SeqTransformer, translator, train_dataloader, test_dataloader, val_dataloader, tokenizer, early_stopper, trainer_config, device, run_id)</span>
+<span>def <span class="ident">new_instance</span></span>(<span>model: src.seq2seq_transformer.Seq2SeqTransformer, translator: src.processor.Processor, train_dataloader, test_dataloader, val_dataloader, tokenizer: tokenizers.Tokenizer, early_stopper: <a title="transformer.src.trainer.EarlyStopper" href="#transformer.src.trainer.EarlyStopper">EarlyStopper</a>, trainer_config: utils.config.TrainerConfig, device: torch.device, run_id: str)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Creates a new instance of the Trainer class with the provided configuration.</p>
@@ -1669,7 +1885,7 @@ def evaluate_checkpoint(
 <dl>
 <dt><strong><code>model</code></strong> :&ensp;<code>Seq2SeqTransformer</code></dt>
 <dd>The sequence-to-sequence transformer model.</dd>
-<dt><strong><code>translator</code></strong></dt>
+<dt><strong><code>translator</code></strong> :&ensp;<code>src.Processor</code></dt>
 <dd>The translator object used for the model.</dd>
 <dt><strong><code>train_dataloader</code></strong></dt>
 <dd>The training data loader.</dd>
@@ -1677,7 +1893,7 @@ def evaluate_checkpoint(
 <dd>The test data loader.</dd>
 <dt><strong><code>val_dataloader</code></strong></dt>
 <dd>The validation data loader.</dd>
-<dt><strong><code>tokenizer</code></strong></dt>
+<dt><strong><code>tokenizer</code></strong> :&ensp;<code>tokenizers.Tokenizer</code></dt>
 <dd>The tokenizer used for the model.</dd>
 <dt><strong><code>early_stopper</code></strong> :&ensp;<code><a title="transformer.src.trainer.EarlyStopper" href="#transformer.src.trainer.EarlyStopper">EarlyStopper</a></code></dt>
 <dd>The early stopping object.</dd>
@@ -1701,26 +1917,26 @@ def evaluate_checkpoint(
 def new_instance(
     cls,
     model: Seq2SeqTransformer,
-    translator,
+    translator: Processor,
     train_dataloader,
     test_dataloader,
     val_dataloader,
-    tokenizer,
-    early_stopper,
-    trainer_config,
-    device,
-    run_id,
+    tokenizer: Tokenizer,
+    early_stopper: EarlyStopper,
+    trainer_config: TrainerConfig,
+    device: torch.device,
+    run_id: str,
 ):
     &#34;&#34;&#34;
     Creates a new instance of the Trainer class with the provided configuration.
 
     Args:
         model (Seq2SeqTransformer): The sequence-to-sequence transformer model.
-        translator: The translator object used for the model.
+        translator (src.Processor): The translator object used for the model.
         train_dataloader: The training data loader.
         test_dataloader: The test data loader.
         val_dataloader: The validation data loader.
-        tokenizer: The tokenizer used for the model.
+        tokenizer (tokenizers.Tokenizer): The tokenizer used for the model.
         early_stopper (EarlyStopper): The early stopping object.
         trainer_config (TrainerConfig): The configuration for the trainer.
         device (torch.device): The device to use for training.
@@ -1799,7 +2015,7 @@ def new_instance(
 <h3>Methods</h3>
 <dl>
 <dt id="transformer.src.trainer.Trainer.evaluate"><code class="name flex">
-<span>def <span class="ident">evaluate</span></span>(<span>self, inference: bool = False) ‑> float</span>
+<span>def <span class="ident">evaluate</span></span>(<span>self, inference: bool = False) ‑> Tuple[float, float]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Evaluate the model on the validation set and compute the average BLEU and ROUGE scores.</p>
@@ -1817,7 +2033,7 @@ def new_instance(
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def evaluate(self, inference: bool = False) -&gt; float:
+<pre><code class="python">def evaluate(self, inference: bool = False) -&gt; Tuple[float, float]:
     &#34;&#34;&#34;
     Evaluate the model on the validation set and compute the average BLEU and ROUGE scores.
 
@@ -1925,7 +2141,6 @@ def new_instance(
     &#34;&#34;&#34;
     Train the model until convergence or early stopping.
     &#34;&#34;&#34;
-
     try:
         for epoch in range(self.current_epoch, self.num_epochs + 1):
             start_time = perf_counter()

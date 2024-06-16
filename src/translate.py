@@ -3,7 +3,9 @@ import tokenizers
 from src.processor import Processor
 
 
-def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
+def translate_sequence_from_checkpoint(
+    checkpoint: str, tokenizer: str, sequence: str, device: torch.device
+) -> str:
     """
     Translate a sequence using a model checkpoint.
 
@@ -11,7 +13,7 @@ def translate_sequence_from_checkpoint(checkpoint, tokenizer, sequence, device):
         checkpoint (str): Path to the model checkpoint.
         tokenizer (str): Path to the tokenizer.
         sequence (str): Input sequence to translate.
-        device: Device to run the model on.
+        device (torch.device): Device to run the model on.
 
     Returns:
         str: Translated sequence.
@@ -33,7 +35,7 @@ def check_device(dvc=None):
     Check and return the appropriate torch device.
 
     Args:
-        dvc: Device string. Defaults to None.
+        dvc (str): Defaults to None.
 
     Returns:
         torch.device: The selected device.
