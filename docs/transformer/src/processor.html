@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>transformer.src.processor API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>transformer.src.processor</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import torch
+from torch import Tensor
+import tokenizers
+
+
+class Processor:
+    &#34;&#34;&#34;
+    Provides a Processor class that encapsulates a PyTorch model, tokenizer, and device for generating text translations.
+
+    The Processor class has the following methods:
+
+    - `from_instance`: Creates a Processor instance from a pre-trained model, tokenizer, and device.
+    - `from_checkpoint`: Creates a Processor instance from a model checkpoint, tokenizer, and device.
+    - `generate_square_subsequent_mask`: Generates a square subsequent mask for use in the Transformer model.
+    - `create_mask`: Creates the necessary masks for the Transformer model, including source and target masks and padding masks.
+    - `greedy_decode`: Performs greedy decoding to generate the translated text from the source text.
+    - `translate`: Translates a given source sentence using the Processor&#39;s model and tokenizer.
+    &#34;&#34;&#34;
+
+    @classmethod
+    def from_instance(cls, model, tokenizer, device):
+        &#34;&#34;&#34;
+        Creates a Processor instance from a pre-trained model, tokenizer, and device.
+
+        Args:
+            model (torch.nn.Module): The pre-trained PyTorch model.
+            tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+            device (torch.device): The device to use for the model and tokenizer.
+
+        Returns:
+            Processor: A Processor instance initialized with the provided model, tokenizer, and device.
+        &#34;&#34;&#34;
+        processor = cls()
+
+        processor.model = model
+        processor.tokenizer = tokenizer
+        processor.device = device
+
+        return processor
+
+    @classmethod
+    def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+        &#34;&#34;&#34;
+        Creates a Processor instance from a model checkpoint, tokenizer, and device.
+
+        Args:
+            model_checkpoint (str): The path to the model checkpoint file.
+            tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+            device (torch.device): The device to use for the model and tokenizer.
+
+        Returns:
+            Processor: A Processor instance initialized with the provided model, tokenizer, and device.
+        &#34;&#34;&#34;
+        processor = cls()
+
+        processor.model = torch.jit.load(model_checkpoint, map_location=device)
+        processor.tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
+        processor.device = device
+
+        return processor
+
+    def generate_square_subsequent_mask(self, sz):
+        &#34;&#34;&#34;
+        Generate a square subsequent mask of size sz x sz.
+
+        Args:
+            sz (int): Size of the square mask.
+
+        Returns:
+            torch.Tensor: Square subsequent mask.
+        &#34;&#34;&#34;
+
+        mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(
+            0, 1
+        )
+        mask = (
+            mask.float()
+            .masked_fill(mask == 0, float(&#34;-inf&#34;))
+            .masked_fill(mask == 1, float(0.0))
+        )
+        return mask
+
+    def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int = 58100):
+        &#34;&#34;&#34;
+        Create the required masks for the Transformer model.
+
+        Args:
+            src (torch.Tensor): The source input tensor.
+            tgt (torch.Tensor): The target input tensor.
+            pad_id (int, optional): The padding token ID, defaults to 58100.
+
+        Returns:
+            tuple:
+                - src_mask (torch.Tensor): The source mask.
+                - tgt_mask (torch.Tensor): The target mask.
+                - src_padding_mask (torch.Tensor): The source padding mask.
+                - tgt_padding_mask (torch.Tensor): The target padding mask.
+        &#34;&#34;&#34;
+        src_seq_len = src.shape[0]
+        tgt_seq_len = tgt.shape[0]
+
+        tgt_mask = self.generate_square_subsequent_mask(tgt_seq_len)
+        src_mask = torch.zeros((src_seq_len, src_seq_len), device=self.device).type(
+            torch.bool
+        )
+
+        src_padding_mask = (src == pad_id).transpose(0, 1)
+        tgt_padding_mask = (tgt == pad_id).transpose(0, 1)
+        return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
+
+    def greedy_decode(
+        self, src: Tensor, src_mask: Tensor, max_len: int, eos_token_id: int
+    ) -&gt; Tensor:
+        &#34;&#34;&#34;
+        Performs greedy decoding on the input source tensor `src` using the model&#39;s encoder and decoder.
+
+        Args:
+            src (torch.Tensor): The input source tensor.
+            src_mask (torch.Tensor): The source mask tensor.
+            max_len (int): The maximum length of the output sequence.
+            eos_token_id (int): The ID of the end-of-sequence token.
+
+        Returns:
+            torch.Tensor: The output tensor containing the decoded sequence.
+        &#34;&#34;&#34;
+        src = src.to(self.device)
+        src_mask = src_mask.to(self.device)
+
+        memory = self.model.encode(src, src_mask)
+        ys = torch.ones(1, 1).type(torch.long).to(self.device)
+        for _ in range(max_len - 1):
+            memory = memory.to(self.device)
+            tgt_mask = (
+                self.generate_square_subsequent_mask(ys.size(0)).type(torch.bool)
+            ).to(self.device)
+            out = self.model.decode(ys, memory, tgt_mask)
+            out = out.transpose(0, 1)
+            prob = self.model.generator(out[:, -1])
+            _, next_word = torch.max(prob, dim=1)
+            next_word = next_word.item()
+
+            ys = torch.cat(
+                [ys, torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0
+            )
+            if next_word == eos_token_id:
+                break
+        return ys
+
+    def translate(self, src_sentence: str) -&gt; str:
+        &#34;&#34;&#34;
+        Translates the given source sentence using the model&#39;s encoder and decoder.
+
+        Args:
+            src_sentence (str): The source sentence to be translated.
+
+        Returns:
+            str: The translated sentence.
+        &#34;&#34;&#34;
+        self.model.eval()
+        encoded_src = self.tokenizer.encode(src_sentence).ids
+        src = torch.tensor(encoded_src).view(-1, 1)
+        num_tokens = src.shape[0]
+        src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
+        with torch.no_grad():
+            tgt_tokens = self.greedy_decode(
+                src, src_mask, max_len=num_tokens + 5, eos_token_id=2
+            ).flatten()
+        return self.tokenizer.decode(
+            list(tgt_tokens.cpu().numpy()), skip_special_tokens=True
+        )</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="transformer.src.processor.Processor"><code class="flex name class">
+<span>class <span class="ident">Processor</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Provides a Processor class that encapsulates a PyTorch model, tokenizer, and device for generating text translations.</p>
+<p>The Processor class has the following methods:</p>
+<ul>
+<li><code>from_instance</code>: Creates a Processor instance from a pre-trained model, tokenizer, and device.</li>
+<li><code>from_checkpoint</code>: Creates a Processor instance from a model checkpoint, tokenizer, and device.</li>
+<li><code>generate_square_subsequent_mask</code>: Generates a square subsequent mask for use in the Transformer model.</li>
+<li><code>create_mask</code>: Creates the necessary masks for the Transformer model, including source and target masks and padding masks.</li>
+<li><code>greedy_decode</code>: Performs greedy decoding to generate the translated text from the source text.</li>
+<li><code>translate</code>: Translates a given source sentence using the Processor's model and tokenizer.</li>
+</ul></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Processor:
+    &#34;&#34;&#34;
+    Provides a Processor class that encapsulates a PyTorch model, tokenizer, and device for generating text translations.
+
+    The Processor class has the following methods:
+
+    - `from_instance`: Creates a Processor instance from a pre-trained model, tokenizer, and device.
+    - `from_checkpoint`: Creates a Processor instance from a model checkpoint, tokenizer, and device.
+    - `generate_square_subsequent_mask`: Generates a square subsequent mask for use in the Transformer model.
+    - `create_mask`: Creates the necessary masks for the Transformer model, including source and target masks and padding masks.
+    - `greedy_decode`: Performs greedy decoding to generate the translated text from the source text.
+    - `translate`: Translates a given source sentence using the Processor&#39;s model and tokenizer.
+    &#34;&#34;&#34;
+
+    @classmethod
+    def from_instance(cls, model, tokenizer, device):
+        &#34;&#34;&#34;
+        Creates a Processor instance from a pre-trained model, tokenizer, and device.
+
+        Args:
+            model (torch.nn.Module): The pre-trained PyTorch model.
+            tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+            device (torch.device): The device to use for the model and tokenizer.
+
+        Returns:
+            Processor: A Processor instance initialized with the provided model, tokenizer, and device.
+        &#34;&#34;&#34;
+        processor = cls()
+
+        processor.model = model
+        processor.tokenizer = tokenizer
+        processor.device = device
+
+        return processor
+
+    @classmethod
+    def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+        &#34;&#34;&#34;
+        Creates a Processor instance from a model checkpoint, tokenizer, and device.
+
+        Args:
+            model_checkpoint (str): The path to the model checkpoint file.
+            tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+            device (torch.device): The device to use for the model and tokenizer.
+
+        Returns:
+            Processor: A Processor instance initialized with the provided model, tokenizer, and device.
+        &#34;&#34;&#34;
+        processor = cls()
+
+        processor.model = torch.jit.load(model_checkpoint, map_location=device)
+        processor.tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
+        processor.device = device
+
+        return processor
+
+    def generate_square_subsequent_mask(self, sz):
+        &#34;&#34;&#34;
+        Generate a square subsequent mask of size sz x sz.
+
+        Args:
+            sz (int): Size of the square mask.
+
+        Returns:
+            torch.Tensor: Square subsequent mask.
+        &#34;&#34;&#34;
+
+        mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(
+            0, 1
+        )
+        mask = (
+            mask.float()
+            .masked_fill(mask == 0, float(&#34;-inf&#34;))
+            .masked_fill(mask == 1, float(0.0))
+        )
+        return mask
+
+    def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int = 58100):
+        &#34;&#34;&#34;
+        Create the required masks for the Transformer model.
+
+        Args:
+            src (torch.Tensor): The source input tensor.
+            tgt (torch.Tensor): The target input tensor.
+            pad_id (int, optional): The padding token ID, defaults to 58100.
+
+        Returns:
+            tuple:
+                - src_mask (torch.Tensor): The source mask.
+                - tgt_mask (torch.Tensor): The target mask.
+                - src_padding_mask (torch.Tensor): The source padding mask.
+                - tgt_padding_mask (torch.Tensor): The target padding mask.
+        &#34;&#34;&#34;
+        src_seq_len = src.shape[0]
+        tgt_seq_len = tgt.shape[0]
+
+        tgt_mask = self.generate_square_subsequent_mask(tgt_seq_len)
+        src_mask = torch.zeros((src_seq_len, src_seq_len), device=self.device).type(
+            torch.bool
+        )
+
+        src_padding_mask = (src == pad_id).transpose(0, 1)
+        tgt_padding_mask = (tgt == pad_id).transpose(0, 1)
+        return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
+
+    def greedy_decode(
+        self, src: Tensor, src_mask: Tensor, max_len: int, eos_token_id: int
+    ) -&gt; Tensor:
+        &#34;&#34;&#34;
+        Performs greedy decoding on the input source tensor `src` using the model&#39;s encoder and decoder.
+
+        Args:
+            src (torch.Tensor): The input source tensor.
+            src_mask (torch.Tensor): The source mask tensor.
+            max_len (int): The maximum length of the output sequence.
+            eos_token_id (int): The ID of the end-of-sequence token.
+
+        Returns:
+            torch.Tensor: The output tensor containing the decoded sequence.
+        &#34;&#34;&#34;
+        src = src.to(self.device)
+        src_mask = src_mask.to(self.device)
+
+        memory = self.model.encode(src, src_mask)
+        ys = torch.ones(1, 1).type(torch.long).to(self.device)
+        for _ in range(max_len - 1):
+            memory = memory.to(self.device)
+            tgt_mask = (
+                self.generate_square_subsequent_mask(ys.size(0)).type(torch.bool)
+            ).to(self.device)
+            out = self.model.decode(ys, memory, tgt_mask)
+            out = out.transpose(0, 1)
+            prob = self.model.generator(out[:, -1])
+            _, next_word = torch.max(prob, dim=1)
+            next_word = next_word.item()
+
+            ys = torch.cat(
+                [ys, torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0
+            )
+            if next_word == eos_token_id:
+                break
+        return ys
+
+    def translate(self, src_sentence: str) -&gt; str:
+        &#34;&#34;&#34;
+        Translates the given source sentence using the model&#39;s encoder and decoder.
+
+        Args:
+            src_sentence (str): The source sentence to be translated.
+
+        Returns:
+            str: The translated sentence.
+        &#34;&#34;&#34;
+        self.model.eval()
+        encoded_src = self.tokenizer.encode(src_sentence).ids
+        src = torch.tensor(encoded_src).view(-1, 1)
+        num_tokens = src.shape[0]
+        src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
+        with torch.no_grad():
+            tgt_tokens = self.greedy_decode(
+                src, src_mask, max_len=num_tokens + 5, eos_token_id=2
+            ).flatten()
+        return self.tokenizer.decode(
+            list(tgt_tokens.cpu().numpy()), skip_special_tokens=True
+        )</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="transformer.src.processor.Processor.from_checkpoint"><code class="name flex">
+<span>def <span class="ident">from_checkpoint</span></span>(<span>model_checkpoint, tokenizer, device)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a Processor instance from a model checkpoint, tokenizer, and device.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>model_checkpoint</code></strong> :&ensp;<code>str</code></dt>
+<dd>The path to the model checkpoint file.</dd>
+<dt><strong><code>tokenizer</code></strong> :&ensp;<code>tokenizers.Tokenizer</code></dt>
+<dd>The pre-trained tokenizer.</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
+<dd>The device to use for the model and tokenizer.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="transformer.src.processor.Processor" href="#transformer.src.processor.Processor">Processor</a></code></dt>
+<dd>A Processor instance initialized with the provided model, tokenizer, and device.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_checkpoint(cls, model_checkpoint, tokenizer, device):
+    &#34;&#34;&#34;
+    Creates a Processor instance from a model checkpoint, tokenizer, and device.
+
+    Args:
+        model_checkpoint (str): The path to the model checkpoint file.
+        tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+        device (torch.device): The device to use for the model and tokenizer.
+
+    Returns:
+        Processor: A Processor instance initialized with the provided model, tokenizer, and device.
+    &#34;&#34;&#34;
+    processor = cls()
+
+    processor.model = torch.jit.load(model_checkpoint, map_location=device)
+    processor.tokenizer = tokenizers.Tokenizer.from_file(tokenizer)
+    processor.device = device
+
+    return processor</code></pre>
+</details>
+</dd>
+<dt id="transformer.src.processor.Processor.from_instance"><code class="name flex">
+<span>def <span class="ident">from_instance</span></span>(<span>model, tokenizer, device)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a Processor instance from a pre-trained model, tokenizer, and device.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>model</code></strong> :&ensp;<code>torch.nn.Module</code></dt>
+<dd>The pre-trained PyTorch model.</dd>
+<dt><strong><code>tokenizer</code></strong> :&ensp;<code>tokenizers.Tokenizer</code></dt>
+<dd>The pre-trained tokenizer.</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>torch.device</code></dt>
+<dd>The device to use for the model and tokenizer.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="transformer.src.processor.Processor" href="#transformer.src.processor.Processor">Processor</a></code></dt>
+<dd>A Processor instance initialized with the provided model, tokenizer, and device.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_instance(cls, model, tokenizer, device):
+    &#34;&#34;&#34;
+    Creates a Processor instance from a pre-trained model, tokenizer, and device.
+
+    Args:
+        model (torch.nn.Module): The pre-trained PyTorch model.
+        tokenizer (tokenizers.Tokenizer): The pre-trained tokenizer.
+        device (torch.device): The device to use for the model and tokenizer.
+
+    Returns:
+        Processor: A Processor instance initialized with the provided model, tokenizer, and device.
+    &#34;&#34;&#34;
+    processor = cls()
+
+    processor.model = model
+    processor.tokenizer = tokenizer
+    processor.device = device
+
+    return processor</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="transformer.src.processor.Processor.create_mask"><code class="name flex">
+<span>def <span class="ident">create_mask</span></span>(<span>self, src: torch.Tensor, tgt: torch.Tensor, pad_id: int = 58100)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create the required masks for the Transformer model.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>src</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The source input tensor.</dd>
+<dt><strong><code>tgt</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The target input tensor.</dd>
+<dt><strong><code>pad_id</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>The padding token ID, defaults to 58100.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>tuple:
+- src_mask (torch.Tensor): The source mask.
+- tgt_mask (torch.Tensor): The target mask.
+- src_padding_mask (torch.Tensor): The source padding mask.
+- tgt_padding_mask (torch.Tensor): The target padding mask.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_mask(self, src: Tensor, tgt: Tensor, pad_id: int = 58100):
+    &#34;&#34;&#34;
+    Create the required masks for the Transformer model.
+
+    Args:
+        src (torch.Tensor): The source input tensor.
+        tgt (torch.Tensor): The target input tensor.
+        pad_id (int, optional): The padding token ID, defaults to 58100.
+
+    Returns:
+        tuple:
+            - src_mask (torch.Tensor): The source mask.
+            - tgt_mask (torch.Tensor): The target mask.
+            - src_padding_mask (torch.Tensor): The source padding mask.
+            - tgt_padding_mask (torch.Tensor): The target padding mask.
+    &#34;&#34;&#34;
+    src_seq_len = src.shape[0]
+    tgt_seq_len = tgt.shape[0]
+
+    tgt_mask = self.generate_square_subsequent_mask(tgt_seq_len)
+    src_mask = torch.zeros((src_seq_len, src_seq_len), device=self.device).type(
+        torch.bool
+    )
+
+    src_padding_mask = (src == pad_id).transpose(0, 1)
+    tgt_padding_mask = (tgt == pad_id).transpose(0, 1)
+    return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask</code></pre>
+</details>
+</dd>
+<dt id="transformer.src.processor.Processor.generate_square_subsequent_mask"><code class="name flex">
+<span>def <span class="ident">generate_square_subsequent_mask</span></span>(<span>self, sz)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generate a square subsequent mask of size sz x sz.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>sz</code></strong> :&ensp;<code>int</code></dt>
+<dd>Size of the square mask.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>torch.Tensor</code></dt>
+<dd>Square subsequent mask.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def generate_square_subsequent_mask(self, sz):
+    &#34;&#34;&#34;
+    Generate a square subsequent mask of size sz x sz.
+
+    Args:
+        sz (int): Size of the square mask.
+
+    Returns:
+        torch.Tensor: Square subsequent mask.
+    &#34;&#34;&#34;
+
+    mask = (torch.triu(torch.ones((sz, sz), device=self.device)) == 1).transpose(
+        0, 1
+    )
+    mask = (
+        mask.float()
+        .masked_fill(mask == 0, float(&#34;-inf&#34;))
+        .masked_fill(mask == 1, float(0.0))
+    )
+    return mask</code></pre>
+</details>
+</dd>
+<dt id="transformer.src.processor.Processor.greedy_decode"><code class="name flex">
+<span>def <span class="ident">greedy_decode</span></span>(<span>self, src: torch.Tensor, src_mask: torch.Tensor, max_len: int, eos_token_id: int) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Performs greedy decoding on the input source tensor <code>src</code> using the model's encoder and decoder.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>src</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The input source tensor.</dd>
+<dt><strong><code>src_mask</code></strong> :&ensp;<code>torch.Tensor</code></dt>
+<dd>The source mask tensor.</dd>
+<dt><strong><code>max_len</code></strong> :&ensp;<code>int</code></dt>
+<dd>The maximum length of the output sequence.</dd>
+<dt><strong><code>eos_token_id</code></strong> :&ensp;<code>int</code></dt>
+<dd>The ID of the end-of-sequence token.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>torch.Tensor</code></dt>
+<dd>The output tensor containing the decoded sequence.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def greedy_decode(
+    self, src: Tensor, src_mask: Tensor, max_len: int, eos_token_id: int
+) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Performs greedy decoding on the input source tensor `src` using the model&#39;s encoder and decoder.
+
+    Args:
+        src (torch.Tensor): The input source tensor.
+        src_mask (torch.Tensor): The source mask tensor.
+        max_len (int): The maximum length of the output sequence.
+        eos_token_id (int): The ID of the end-of-sequence token.
+
+    Returns:
+        torch.Tensor: The output tensor containing the decoded sequence.
+    &#34;&#34;&#34;
+    src = src.to(self.device)
+    src_mask = src_mask.to(self.device)
+
+    memory = self.model.encode(src, src_mask)
+    ys = torch.ones(1, 1).type(torch.long).to(self.device)
+    for _ in range(max_len - 1):
+        memory = memory.to(self.device)
+        tgt_mask = (
+            self.generate_square_subsequent_mask(ys.size(0)).type(torch.bool)
+        ).to(self.device)
+        out = self.model.decode(ys, memory, tgt_mask)
+        out = out.transpose(0, 1)
+        prob = self.model.generator(out[:, -1])
+        _, next_word = torch.max(prob, dim=1)
+        next_word = next_word.item()
+
+        ys = torch.cat(
+            [ys, torch.ones(1, 1).type_as(src.data).fill_(next_word)], dim=0
+        )
+        if next_word == eos_token_id:
+            break
+    return ys</code></pre>
+</details>
+</dd>
+<dt id="transformer.src.processor.Processor.translate"><code class="name flex">
+<span>def <span class="ident">translate</span></span>(<span>self, src_sentence: str) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Translates the given source sentence using the model's encoder and decoder.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>src_sentence</code></strong> :&ensp;<code>str</code></dt>
+<dd>The source sentence to be translated.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>str</code></dt>
+<dd>The translated sentence.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def translate(self, src_sentence: str) -&gt; str:
+    &#34;&#34;&#34;
+    Translates the given source sentence using the model&#39;s encoder and decoder.
+
+    Args:
+        src_sentence (str): The source sentence to be translated.
+
+    Returns:
+        str: The translated sentence.
+    &#34;&#34;&#34;
+    self.model.eval()
+    encoded_src = self.tokenizer.encode(src_sentence).ids
+    src = torch.tensor(encoded_src).view(-1, 1)
+    num_tokens = src.shape[0]
+    src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
+    with torch.no_grad():
+        tgt_tokens = self.greedy_decode(
+            src, src_mask, max_len=num_tokens + 5, eos_token_id=2
+        ).flatten()
+    return self.tokenizer.decode(
+        list(tgt_tokens.cpu().numpy()), skip_special_tokens=True
+    )</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="transformer.src" href="index.html">transformer.src</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="transformer.src.processor.Processor" href="#transformer.src.processor.Processor">Processor</a></code></h4>
+<ul class="">
+<li><code><a title="transformer.src.processor.Processor.create_mask" href="#transformer.src.processor.Processor.create_mask">create_mask</a></code></li>
+<li><code><a title="transformer.src.processor.Processor.from_checkpoint" href="#transformer.src.processor.Processor.from_checkpoint">from_checkpoint</a></code></li>
+<li><code><a title="transformer.src.processor.Processor.from_instance" href="#transformer.src.processor.Processor.from_instance">from_instance</a></code></li>
+<li><code><a title="transformer.src.processor.Processor.generate_square_subsequent_mask" href="#transformer.src.processor.Processor.generate_square_subsequent_mask">generate_square_subsequent_mask</a></code></li>
+<li><code><a title="transformer.src.processor.Processor.greedy_decode" href="#transformer.src.processor.Processor.greedy_decode">greedy_decode</a></code></li>
+<li><code><a title="transformer.src.processor.Processor.translate" href="#transformer.src.processor.Processor.translate">translate</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

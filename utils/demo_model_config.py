@@ -27,7 +27,7 @@ class ModelConfig:
         self.t5_tokenizer = None
         self.custom_translator = None
         self.device = device
-        
+
     def set_t5_model(self):
         """
         Load and set the T5 model and tokenizer.
@@ -43,7 +43,7 @@ class ModelConfig:
         except RuntimeError as e:
             print(e)
             return "Something went wrong!"
-        
+
     def set_custom_model(self, model, tokenizer):
         """
         Load and set a custom model and tokenizer.
@@ -55,16 +55,20 @@ class ModelConfig:
         Returns:
             str: A message indicating whether the custom model was successfully loaded.
         """
-        if not isinstance(model, gr.utils.NamedString) or not isinstance(tokenizer, gr.utils.NamedString):
+        if not isinstance(model, gr.utils.NamedString) or not isinstance(
+            tokenizer, gr.utils.NamedString
+        ):
             return f"Please provide a model and tokenizer, {model}; {tokenizer}"
         try:
-            self.custom_translator = Processor.from_checkpoint(model, tokenizer, self.device)
+            self.custom_translator = Processor.from_checkpoint(
+                model, tokenizer, self.device
+            )
             self.t5_model, self.t5_tokenizer = None, None
             return f"Custom Model loaded: {self.custom_translator}"
         except RuntimeError as e:
             print(e)
             return "Something went wrong!"
-        
+
     @staticmethod
     def process_file(fileobj):
         """
@@ -78,7 +82,7 @@ class ModelConfig:
         """
 
         return fileobj.name
-        
+
     def _translate_t5(self, sequence):
         """
         Translate a sequence using the T5 model.
@@ -91,11 +95,13 @@ class ModelConfig:
         """
 
         try:
-            output = t5_inference(self.t5_tokenizer, self.t5_model, sequence, self.device)
+            output = t5_inference(
+                self.t5_tokenizer, self.t5_model, sequence, self.device
+            )
             return output
         except RuntimeError as e:
             return e
-        
+
     def _translate_custom(self, sequence):
         """
         Translate a sequence using the custom model.
@@ -112,7 +118,7 @@ class ModelConfig:
             return output
         except RuntimeError as e:
             return e
-        
+
     def translate(self, sequence, model_id: str):
         """
         Translate a sequence using the loaded model.
@@ -124,9 +130,9 @@ class ModelConfig:
             str: The translated sequence.
         """
 
-        if self.t5_tokenizer and self.t5_model is not None and model_id == 't5':
+        if self.t5_tokenizer and self.t5_model is not None and model_id == "t5":
             return self._translate_t5(sequence)
-        elif self.custom_translator is not None and model_id == 'custom':
+        elif self.custom_translator is not None and model_id == "custom":
             return self._translate_custom(sequence)
         else:
-            return 'Load the model first!'
+            return "Load the model first!"

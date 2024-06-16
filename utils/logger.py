@@ -16,11 +16,10 @@ def get_logger(name: str):
     sets up the logging configuration, and returns a logger instance with the specified name.
     """
 
-    with open('./configs/logger.yaml') as f:
+    with open("./configs/logger.yaml") as f:
         config = yaml.safe_load(f.read())
         logging.config.dictConfig(config)
-        
+
     logger = logging.getLogger(name)
-    
+
     return logger
-    

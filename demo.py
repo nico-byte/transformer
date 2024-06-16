@@ -2,7 +2,7 @@ import gradio as gr
 from src.translate import check_device
 from utils.demo_model_config import ModelConfig
 
-device = check_device('cpu')
+device = check_device("cpu")
 
 # Initialize model configuration
 model_config = ModelConfig(device)
@@ -10,17 +10,22 @@ model_config = ModelConfig(device)
 # Set up Gradio theme
 theme = gr.themes.Default()
 
-en_examples = ["The quick brown fox jumps over the lazy dog.", 
-                "She sells seashells by the seashore.", 
-                "Technology is rapidly changing the way we live and work.", 
-                "Can you recommend a good restaurant nearby?", 
-                "Despite the rain, they decided to go for a hike."]
+en_examples = [
+    "The quick brown fox jumps over the lazy dog.",
+    "She sells seashells by the seashore.",
+    "Technology is rapidly changing the way we live and work.",
+    "Can you recommend a good restaurant nearby?",
+    "Despite the rain, they decided to go for a hike.",
+]
 
-de_examples = ["Die schnelle braune Katze sprang über den hohen Zaun.", 
-                "Er spielte den ganzen Tag Videospiele.", 
-                "Das neue Museum in der Stadt ist einen Besuch wert.", 
-                "Kannst du mir helfen, dieses Problem zu lösen?", 
-                "Obwohl sie müde war, arbeitete sie bis spät in die Nacht."]
+de_examples = [
+    "Die schnelle braune Katze sprang über den hohen Zaun.",
+    "Er spielte den ganzen Tag Videospiele.",
+    "Das neue Museum in der Stadt ist einen Besuch wert.",
+    "Kannst du mir helfen, dieses Problem zu lösen?",
+    "Obwohl sie müde war, arbeitete sie bis spät in die Nacht.",
+]
+
 
 # Build Gradio interface
 def t5_model_tab():
@@ -43,11 +48,18 @@ def t5_model_tab():
 
                 with gr.Row():
                     trns_btn = gr.Button("Translate")
-                    trns_btn.click(fn=model_config.translate, inputs=[seed, model_id], outputs=[output])
+                    trns_btn.click(
+                        fn=model_config.translate,
+                        inputs=[seed, model_id],
+                        outputs=[output],
+                    )
                     gr.ClearButton(components=[seed, output, debug_log])
 
             with gr.Accordion(label="Examples", open=True):
-                gr.Examples(examples=en_examples, inputs=[seed], label="English Sequences")
+                gr.Examples(
+                    examples=en_examples, inputs=[seed], label="English Sequences"
+                )
+
 
 def custom_model_tab():
     with gr.Tab(label="Custom Model"):
@@ -57,12 +69,18 @@ def custom_model_tab():
 
             with gr.Group():
                 with gr.Row():
-                    model = gr.File(label="Model", file_types=['.pt'], min_width=200)
-                    tokenizer = gr.File(label="Tokenizer", file_types=['.json'], min_width=200)
+                    model = gr.File(label="Model", file_types=[".pt"], min_width=200)
+                    tokenizer = gr.File(
+                        label="Tokenizer", file_types=[".json"], min_width=200
+                    )
 
                 with gr.Row():
                     load_custom_btn = gr.Button("Load custom model")
-                    load_custom_btn.click(fn=model_config.set_custom_model, inputs=[model, tokenizer], outputs=[debug_log])
+                    load_custom_btn.click(
+                        fn=model_config.set_custom_model,
+                        inputs=[model, tokenizer],
+                        outputs=[debug_log],
+                    )
 
             with gr.Group():
                 with gr.Row():
@@ -74,18 +92,31 @@ def custom_model_tab():
 
                 with gr.Row():
                     trns_btn = gr.Button("Translate")
-                    trns_btn.click(fn=model_config.translate, inputs=[seed, model_id], outputs=[output])
+                    trns_btn.click(
+                        fn=model_config.translate,
+                        inputs=[seed, model_id],
+                        outputs=[output],
+                    )
                     gr.ClearButton(components=[seed, output, debug_log])
 
             with gr.Accordion(label="Examples", open=True):
-                gr.Examples(examples=en_examples, inputs=[seed], label="English Sequences")
-                gr.Examples(examples=de_examples, inputs=[seed], label="German Sequences")
+                gr.Examples(
+                    examples=en_examples, inputs=[seed], label="English Sequences"
+                )
+                gr.Examples(
+                    examples=de_examples, inputs=[seed], label="German Sequences"
+                )
+
 
 with gr.Blocks(theme=theme) as demo:
     header = gr.Markdown("# KI in den Life Sciences: Machine Translation Demo")
-    line1 = gr.Markdown("by [Nico Fuchs](https://github.com/nico-byte) and [Matthias Laton](https://github.com/20DragonSlayer01)")
+    line1 = gr.Markdown(
+        "by [Nico Fuchs](https://github.com/nico-byte) and [Matthias Laton](https://github.com/20DragonSlayer01)"
+    )
     line2 = gr.Markdown("---")
-    line3 = gr.Markdown("### This demo uses a T5 model to translate English to German. You can also load your own model and tokenizer.")
+    line3 = gr.Markdown(
+        "### This demo uses a T5 model to translate English to German. You can also load your own model and tokenizer."
+    )
 
     t5_model_tab()
     custom_model_tab()

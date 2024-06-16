@@ -1,11 +1,24 @@
 from typing import List
-from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, trainers
+from tokenizers import (
+    Tokenizer,
+    decoders,
+    models,
+    normalizers,
+    pre_tokenizers,
+    trainers,
+)
 from tokenizers.processors import TemplateProcessing
 import os
 import random
 
 
-def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset: List[str], vocab_size: int):
+def build_tokenizer(
+    name: str,
+    run_id: str,
+    src_dataset: List[str],
+    tgt_dataset: List[str],
+    vocab_size: int,
+):
     """
     Build and train a tokenizer on the provided source and target datasets.
 
@@ -29,8 +42,7 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel()
     tokenizer.decoder = decoders.ByteLevel()
     tokenizer.post_processor = TemplateProcessing(
-        single="<bos> $A <eos>",
-        special_tokens=[("<bos>", 1), ("<eos>", 2)]
+        single="<bos> $A <eos>", special_tokens=[("<bos>", 1), ("<eos>", 2)]
     )
 
     trainer = trainers.UnigramTrainer(
@@ -46,28 +58,31 @@ def build_tokenizer(name: str, run_id: str, src_dataset: List[str], tgt_dataset:
     random.shuffle(combined_dataset)
 
     # Train the tokenizer on the combined dataset
-    tokenizer.train_from_iterator(batch_iterator(combined_dataset), trainer=trainer, length=len(combined_dataset))
+    tokenizer.train_from_iterator(
+        batch_iterator(combined_dataset), trainer=trainer, length=len(combined_dataset)
+    )
 
-    if not os.path.exists(f'./models/{run_id}/'):
-        os.makedirs(f'./models/{run_id}/')
+    if not os.path.exists(f"./models/{run_id}/"):
+        os.makedirs(f"./models/{run_id}/")
 
     tokenizer.save(f"./models/{run_id}/tokenizer-{name}.json")
-    
+
     return tokenizer
-    
+
+
 def batch_iterator(dataset, batch_size=1000):
-        """
-        Batch iterator to yield batches of data from the dataset.
+    """
+    Batch iterator to yield batches of data from the dataset.
 
-        Args:
-           dataset (List[str]): The dataset to iterate over.
-           batch_size (int, optional): The size of each batch. Defaults to 1000.
+    Args:
+       dataset (List[str]): The dataset to iterate over.
+       batch_size (int, optional): The size of each batch. Defaults to 1000.
 
-        Yields:
-           List[str]: A batch of data from the dataset.
+    Yields:
+       List[str]: A batch of data from the dataset.
 
-        The function splits the dataset into batches of the specified size and yields each batch.
-        """        
+    The function splits the dataset into batches of the specified size and yields each batch.
+    """
 
-        for i in range(0, len(dataset), batch_size):
-            yield dataset[i : i + batch_size]
+    for i in range(0, len(dataset), batch_size):
+        yield dataset[i : i + batch_size]

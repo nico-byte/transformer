@@ -16,4 +16,5 @@ trainer:
   learning_rate: 0.0005
   num_epochs: 50
   tgt_batch_size: 1024
+  lr_scheduler: 'linear'
   warmup_steps: 3000
