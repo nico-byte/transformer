@@ -55,12 +55,7 @@ class ModelConfig:
         Returns:
             str: A message indicating whether the custom model was successfully loaded.
         """
-        if not isinstance(model, gr.utils.NamedString) or not isinstance(
-            tokenizer, gr.utils.NamedString
-        ):
-            return f"Please provide a model and tokenizer, {model}; {tokenizer}"
         try:
-            model, tokenizer = self.process_file(model), self.process_file(tokenizer)
             self.custom_translator = Processor.from_checkpoint(
                 model, tokenizer, self.device
             )

@@ -69,16 +69,39 @@ def custom_model_tab():
 
             with gr.Group():
                 with gr.Row():
-                    model = gr.File(label="Model", file_types=[".pt"], min_width=200)
-                    tokenizer = gr.File(
-                        label="Tokenizer", file_types=[".json"], min_width=200
+                    model_path_en_de = gr.Textbox(
+                        value="./models/en-de-small-v3/en-de-small.pt",
+                        max_lines=1,
+                        visible=False,
+                    )
+                    tokenizer_path_en_de = gr.Textbox(
+                        value="./models/en-de-small-v3/tokenizer.json",
+                        max_lines=1,
+                        visible=False,
                     )
 
-                with gr.Row():
-                    load_custom_btn = gr.Button("Load custom model")
-                    load_custom_btn.click(
+                    model_path_de_en = gr.Textbox(
+                        value="./models/de-en-small-v2/de-en-small.pt",
+                        max_lines=1,
+                        visible=False,
+                    )
+                    tokenizer_path_de_en = gr.Textbox(
+                        value="./models/de-en-small-v2/tokenizer.json",
+                        max_lines=1,
+                        visible=False,
+                    )
+
+                    load_custom_en_de_btn = gr.Button("Load custom en-de model")
+                    load_custom_en_de_btn.click(
                         fn=model_config.set_custom_model,
-                        inputs=[model, tokenizer],
+                        inputs=[model_path_en_de, tokenizer_path_en_de],
+                        outputs=[debug_log],
+                    )
+
+                    load_custom_de_en_btn = gr.Button("Load custom de-en model")
+                    load_custom_de_en_btn.click(
+                        fn=model_config.set_custom_model,
+                        inputs=[model_path_de_en, tokenizer_path_de_en],
                         outputs=[debug_log],
                     )
 
