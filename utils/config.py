@@ -96,4 +96,5 @@ class TrainerConfig(PydanticBaseModel):
     num_epochs: int
     batch_size: int
     tgt_batch_size: int
+    lr_scheduler: str
     warmup_steps: int

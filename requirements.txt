@@ -4,6 +4,8 @@
 #
 #    pip-compile
 #
+absl-py==2.1.0
+    # via rouge-score
 aiofiles==23.2.1
     # via gradio
 aiohttp==3.9.5
@@ -57,6 +59,8 @@ click==8.1.7
     #   nltk
     #   typer
     #   uvicorn
+colorama==0.4.6
+    # via sacrebleu
 comm==0.2.2
     # via
     #   ipykernel
@@ -66,7 +70,9 @@ contourpy==1.2.1
 cycler==0.12.1
     # via matplotlib
 datasets==2.19.1
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   evaluate
 debugpy==1.8.1
     # via ipykernel
 decorator==5.1.1
@@ -76,11 +82,14 @@ defusedxml==0.7.1
 dill==0.3.8
     # via
     #   datasets
+    #   evaluate
     #   multiprocess
 dnspython==2.6.1
     # via email-validator
 email-validator==2.1.1
     # via fastapi
+evaluate==0.4.2
+    # via -r requirements.in
 executing==2.0.1
     # via stack-data
 fastapi==0.111.0
@@ -108,6 +117,7 @@ frozenlist==1.4.1
 fsspec[http]==2024.3.1
     # via
     #   datasets
+    #   evaluate
     #   gradio-client
     #   huggingface-hub
     #   torch
@@ -132,6 +142,7 @@ httpx==0.27.0
 huggingface-hub==0.23.2
     # via
     #   datasets
+    #   evaluate
     #   gradio
     #   gradio-client
     #   tokenizers
@@ -234,8 +245,8 @@ jupyterlab-widgets==3.0.11
     # via ipywidgets
 kiwisolver==1.4.5
     # via matplotlib
-lion-pytorch==0.1.4
-    # via -r requirements.in
+lxml==5.2.2
+    # via sacrebleu
 markdown-it-py==3.0.0
     # via rich
 markupsafe==2.1.5
@@ -260,7 +271,9 @@ multidict==6.0.5
     #   aiohttp
     #   yarl
 multiprocess==0.70.16
-    # via datasets
+    # via
+    #   datasets
+    #   evaluate
 nbclient==0.10.0
     # via nbconvert
 nbconvert==7.16.4
@@ -277,7 +290,7 @@ nest-asyncio==1.6.0
 networkx==3.3
     # via torch
 nltk==3.8.1
-    # via -r requirements.in
+    # via rouge-score
 notebook==7.2.0
     # via jupyter
 notebook-shim==0.2.4
@@ -289,10 +302,13 @@ numpy==1.26.4
     #   altair
     #   contourpy
     #   datasets
+    #   evaluate
     #   gradio
     #   matplotlib
     #   pandas
     #   pyarrow
+    #   rouge-score
+    #   sacrebleu
     #   torchtext
     #   transformers
 nvidia-cublas-cu12==12.1.3.1
@@ -336,6 +352,7 @@ packaging==24.0
     # via
     #   altair
     #   datasets
+    #   evaluate
     #   gradio
     #   gradio-client
     #   huggingface-hub
@@ -352,6 +369,7 @@ pandas==2.2.2
     # via
     #   altair
     #   datasets
+    #   evaluate
     #   gradio
 pandocfilters==1.5.1
     # via nbconvert
@@ -366,7 +384,9 @@ pillow==10.3.0
 platformdirs==4.2.2
     # via jupyter-core
 portalocker==2.8.2
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   sacrebleu
 prometheus-client==0.20.0
     # via jupyter-server
 prompt-toolkit==3.0.46
@@ -450,10 +470,12 @@ referencing==0.35.1
 regex==2024.5.15
     # via
     #   nltk
+    #   sacrebleu
     #   transformers
 requests==2.32.3
     # via
     #   datasets
+    #   evaluate
     #   huggingface-hub
     #   jupyterlab-server
     #   torchdata
@@ -469,12 +491,16 @@ rfc3986-validator==0.1.1
     #   jupyter-events
 rich==13.7.1
     # via typer
+rouge-score==0.1.2
+    # via -r requirements.in
 rpds-py==0.18.1
     # via
     #   jsonschema
     #   referencing
 ruff==0.4.7
     # via gradio
+sacrebleu==2.4.2
+    # via -r requirements.in
 safetensors==0.4.3
     # via transformers
 semantic-version==2.10.0
@@ -491,6 +517,7 @@ six==1.16.0
     #   bleach
     #   python-dateutil
     #   rfc3339-validator
+    #   rouge-score
 sniffio==1.3.1
     # via
     #   anyio
@@ -503,6 +530,8 @@ starlette==0.37.2
     # via fastapi
 sympy==1.12.1
     # via torch
+tabulate==0.9.0
+    # via sacrebleu
 terminado==0.18.1
     # via
     #   jupyter-server
@@ -518,7 +547,6 @@ toolz==0.12.1
 torch==2.3.0
     # via
     #   -r requirements.in
-    #   lion-pytorch
     #   torchdata
     #   torchtext
 torchdata==0.7.1
@@ -542,6 +570,7 @@ tornado==6.4
 tqdm==4.66.4
     # via
     #   datasets
+    #   evaluate
     #   huggingface-hub
     #   nltk
     #   torchtext
@@ -618,6 +647,8 @@ websockets==11.0.3
 widgetsnbextension==4.0.11
     # via ipywidgets
 xxhash==3.4.1
-    # via datasets
+    # via
+    #   datasets
+    #   evaluate
 yarl==1.9.4
     # via aiohttp

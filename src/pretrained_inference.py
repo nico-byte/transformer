@@ -54,7 +54,7 @@ def t5_inference(
     """
 
     sequence = ["translate English to German: " + sequence]
-    with torch.nograd():
+    with torch.no_grad():
         input_ids = tokenizer(sequence, return_tensors="pt").input_ids.to(device)
         outputs = model.generate(input_ids, max_length=256)
 
