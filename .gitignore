@@ -13,3 +13,4 @@ flagged
 *.json
 *.png
 playground.py
+=*

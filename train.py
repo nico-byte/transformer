@@ -34,7 +34,7 @@ def parsing_args():
     """
 
     parser = argparse.ArgumentParser(description="Parsing some important arguments.")
-    parser.add_argument("path_to_config", type=str)
+    parser.add_argument("--configs", type=str)
     parser.add_argument("--run-id", type=str)
     parser.add_argument(
         "--torch-device",
@@ -71,7 +71,7 @@ def main(args):
     Raises:
           SystemExit: If the specified run ID already exists.
     """
-    path_to_config: str = args.path_to_config
+    config_paths = args.configs.split(',')
     run_id: str = args.run_id
     device: str = args.torch_device
 
@@ -83,11 +83,22 @@ def main(args):
     else:
         os.makedirs(f"./models/{run_id}/metrics")
 
-    with open(path_to_config) as stream:
-        config = yaml.safe_load(stream)
-
+    configs = {}
+    
+    for path_to_config in config_paths:
+        config_file_path = f"./configs/{path_to_config}.yaml"
+        
+        try:
+            with open(config_file_path, 'r') as stream:
+                config = yaml.safe_load(stream)
+                configs[path_to_config] = config
+        except FileNotFoundError:
+            print(f"Error: File {config_file_path} not found.")
+        except yaml.YAMLError as e:
+            print(f"Error parsing the file {config_file_path}: {e}")
+        
     shared_conf = SharedConfig(run_id=run_id)
-    dl_conf = DataLoaderConfig(**config["dataloader"])
+    dl_conf = DataLoaderConfig(**configs["dataloader"])
 
     if dl_conf.dataset == "iwslt2017":
         dataloader = IWSLT2017DataLoader.new_instance(dl_conf, shared_conf)
@@ -107,7 +118,7 @@ def main(args):
     )
 
     model_conf = TransformerConfig(
-        **config["transformer"],
+        **configs["transformer"],
         src_vocab_size=SRC_VOCAB_SIZE,
         tgt_vocab_size=TGT_VOCAB_SIZE,
     )
@@ -116,7 +127,7 @@ def main(args):
     translator = Processor.from_instance(transformer, tokenizer, device)
 
     trainer_conf = TrainerConfig(
-        **config["trainer"], device=device, batch_size=dl_conf.batch_size
+        **configs["trainer"], device=device, batch_size=dl_conf.batch_size
     )
     summary(
         transformer,

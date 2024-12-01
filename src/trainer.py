@@ -306,6 +306,7 @@ class Trainer:
             lr=trainer_config.learning_rate,
             betas=(0.9, 0.98),
             eps=10e-9,
+            weight_decay=0.01,
         )
 
         init_lr = 2e-6

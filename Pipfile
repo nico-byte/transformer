@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+torch = "==2.3.0"
+torchdata = "==0.7.1"
+torchinfo = "==1.8.0"
+torchsummary = "==1.5.1"
+torchtext = "==0.18.0"
+datasets = "==2.19.1"
+pydantic = "==2.7.0"
+pydantic-core = "==2.18.1"
+portalocker = "*"
+transformers = "==4.41.0"
+sentencepiece = "==0.2.0"
+evaluate = "*"
+rouge-score = "*"
+sacrebleu = "*"
+matplotlib = "*"
+urllib3 = "==1.26.15"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11.6"

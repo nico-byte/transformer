@@ -1,0 +1,6 @@
+num_encoder_layers: 4
+num_decoder_layers: 4
+emb_size: 512
+nhead: 8
+dim_feedforward: 2048
+dropout: 0.14
